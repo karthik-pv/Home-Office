@@ -1,15 +1,15 @@
 from flask import Flask
 from controller import getListofFunds
-from connectToDatabase import connect_to_database
+
+from flask import jsonify
+
 
 app = Flask(__name__)
-
-db = connect_to_database()
 
 
 @app.route("/")
 def getListOfFunds():
-    return getListofFunds(db)
+    return jsonify(getListofFunds())
 
 
 if __name__ == "__main__":

@@ -1,7 +1,9 @@
-from connectToDatabase import getListOfFundsDBLogic, execute_query
+from Database_Tier.dbLogic import getListOfFundsDBLogic
+from Database_Tier.connectToDatabase import execute_query
 
 
-def getListofFunds(db):
+def getListofFunds():
     query = getListOfFundsDBLogic("Fund", "NAV")
-    funds = execute_query(db, query)
-    print(funds)
+    funds = execute_query(query)
+    result_list = [item[0] for item in funds]
+    return result_list
