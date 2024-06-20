@@ -4,5 +4,6 @@
     "USER": "postgres",
     "PASSWORD": "postgrespassword",
     "DATABASE": "Home Office"
-  }
+  },
+  "ALLOWED_EXTENSIONS": "csv"
 }
