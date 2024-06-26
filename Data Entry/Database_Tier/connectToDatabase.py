@@ -50,6 +50,12 @@ class DatabaseManager:
             DatabaseManager._instance = DatabaseManager()
         return DatabaseManager._instance.Session()
 
+    @staticmethod
+    def get_engine():
+        if DatabaseManager._instance is None:
+            DatabaseManager._instance = DatabaseManager()
+        return DatabaseManager._instance.engine
+
 
 def execute_query(query):
     session = DatabaseManager.get_session()
@@ -64,3 +70,7 @@ def execute_query(query):
 
     finally:
         session.close()
+
+
+def getEngine():
+    return DatabaseManager.get_engine()

@@ -17,8 +17,9 @@ def getListOfFunds():
 @app.route("/fileUpload", methods=["POST"])
 def uploadFile():
     f = request.files.get("file")
+    table = request.form.get("table")
     if f:
-        uploadFileToServer(f)
+        uploadFileToServer(f, table)
     return "file uploaded"
 
 
