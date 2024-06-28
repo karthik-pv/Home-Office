@@ -2,7 +2,8 @@ import os
 from werkzeug.utils import secure_filename
 
 from Database_Tier.dbLogic import getListOfFundsDBLogic, uploadCsvAsTable
-from Database_Tier.connectToDatabase import execute_query
+from Database_Tier.connectToDatabase import execute_query, addToTable
+from Database_Tier.schema import ColumnMapper
 
 from utils import ensure_upload_folder_exists
 
@@ -43,5 +44,14 @@ def addDataToFundTable(table, file):
         df = pd.read_csv(file)
         df_no_null = df.dropna(how="all")
         uploadCsvAsTable(df_no_null, table)
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
+
+
+def addColumnMap(data):
+    try:
+        newEntry = ColumnMapper(**data)
+        addToTable(newEntry)
+        return
     except Exception as e:
         return f"An error occurred: {str(e)}"

@@ -72,5 +72,17 @@ def execute_query(query):
         session.close()
 
 
+def addToTable(data):
+    session = DatabaseManager.get_session()
+    try:
+        session.add(data)
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        print(f"An exception has occured : {str(e)}")
+    finally:
+        session.close()
+
+
 def getEngine():
     return DatabaseManager.get_engine()
