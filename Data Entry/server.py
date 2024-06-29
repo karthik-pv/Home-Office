@@ -1,5 +1,10 @@
 from flask import Flask, request
-from controller import selectFundToInsertData, uploadFileToServer, addColumnMap
+from controller import (
+    selectFundToInsertData,
+    uploadFileToServer,
+    addColumnMap,
+    updateMasterTable,
+)
 import os
 from flask import jsonify
 
@@ -27,6 +32,13 @@ def addToColumnMapper():
     data = request.json.get("columnData")
     addColumnMap(data)
     return "Data added to Column Mapper"
+
+
+@app.route("/")
+def data():
+    fund = request.json.get("fund")
+    updateMasterTable(fund)
+    return "Read"
 
 
 if __name__ == "__main__":

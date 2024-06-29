@@ -1,11 +1,18 @@
 import os
 from werkzeug.utils import secure_filename
 
-from Database_Tier.dbLogic import getListOfFundsDBLogic, uploadCsvAsTable
-from Database_Tier.connectToDatabase import execute_query, addToTable
+from Database_Tier.connectToDatabase import (
+    execute_query,
+    addToTable,
+    getListOfFundsDBLogic,
+    uploadCsvAsTable,
+    fetchColumnMappings,
+    reflection,
+    transferDataToMasterTable,
+)
 from Database_Tier.schema import ColumnMapper
 
-from utils import ensure_upload_folder_exists
+from utils import ensure_upload_folder_exists, createDictionary
 
 import pandas as pd
 
@@ -53,5 +60,17 @@ def addColumnMap(data):
         newEntry = ColumnMapper(**data)
         addToTable(newEntry)
         return
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
+
+
+def updateMasterTable(fundName):
+    try:
+        columnMap = fetchColumnMappings(fundName)
+        reflectedTable = reflection(fundName)
+        createDictionary(reflectedTable, columnMap)
+        transferDataToMasterTable(
+            fundName=fundName, reflectedTable=reflectedTable, columnMappings=columnMap
+        )
     except Exception as e:
         return f"An error occurred: {str(e)}"

@@ -1,6 +1,10 @@
 import json
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, MetaData, Table, select, text
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
+from Database_Tier.schema import ColumnMapper, MasterTable
+from sqlalchemy.ext.declarative import declarative_base
+from Database_Tier.schema import getBase
 
 
 class DatabaseManager:
@@ -86,3 +90,103 @@ def addToTable(data):
 
 def getEngine():
     return DatabaseManager.get_engine()
+
+
+def reflection(table):
+    engine = DatabaseManager.get_engine()
+    session = DatabaseManager.get_session()
+    metadata = MetaData()
+    try:
+        reflected_table = Table(table, metadata, autoload_with=engine)
+        # query = reflected_table.select()
+        # result = session.execute(query)
+        # rows = result.fetchall()
+        return reflected_table
+    except Exception as e:
+        print(f"An error occurred while reflecting the table: {str(e)}")
+    finally:
+        session.close()
+
+
+# -------------------------------------------------------- LOGIC --------------------------------------------------------------------
+
+
+def query_reflected_table(reflected_table):
+    session = DatabaseManager.get_session()
+    try:
+        query = select(reflected_table)
+        result = session.execute(query)
+        return result
+    except Exception as e:
+        print(f"An error occurred while querying the table: {str(e)}")
+        session.rollback()
+    finally:
+        session.close()
+
+
+def getListOfFundsDBLogic(fundTag, table):
+    try:
+        query = text(f'SELECT DISTINCT "{fundTag}" FROM "{table}"')
+        return query
+    except Exception as e:
+        print(f"An exception has occured : {str(e)}")
+
+
+def uploadCsvAsTable(dataframe, table):
+    try:
+        engine = getEngine()
+        dataframe.to_sql(table, engine, if_exists="append", index=False)
+    except Exception as e:
+        print(f"An exception has occured : {str(e)}")
+
+
+def fetchColumnMappings(fundName):
+    session = DatabaseManager.get_session()
+    try:
+        query = select(ColumnMapper).where(ColumnMapper.FundHouse == fundName)
+        result = session.execute(query).scalar_one()
+        column_mappings = {
+            column: getattr(result, column)
+            for column in ColumnMapper.__table__.columns.keys()
+            if getattr(result, column)
+        }
+        return column_mappings
+    except Exception as e:
+        print(f"An error occurred while fetching column mappings: {str(e)}")
+        return None
+    finally:
+        session.close()
+
+
+def transferDataToMasterTable(fundName, reflectedTable, columnMappings):
+    engine = DatabaseManager.get_engine()
+    session = DatabaseManager.get_session()
+    Base = getBase()
+    Base.metadata.create_all(engine)
+    try:
+        print(reflectedTable)
+        print(columnMappings)
+        query = select(reflectedTable)
+        result = execute_query(query)
+        for row in result:
+            print(row)
+            master_entry = MasterTable(
+                FundHouse=fundName,
+                InvestorName=row[columnMappings["InvestorName"]],
+                TransactionDate=row[columnMappings["TransactionDate"]],
+                TransactionDesc=row[columnMappings["TransactionDesc"]],
+                Amount=row[columnMappings["Amount"]],
+                NAV=row[columnMappings["NAV"]],
+                Load=row[columnMappings["Load"]],
+                Units=row[columnMappings["Units"]],
+                FundDesc=row[columnMappings["FundDesc"]],
+            )
+            session.add(master_entry)
+
+        session.commit()
+        print("Data transferred successfully.")
+    except Exception as e:
+        session.rollback()
+        print(f"An error occurred while transferring data: {str(e)}")
+    finally:
+        session.close()

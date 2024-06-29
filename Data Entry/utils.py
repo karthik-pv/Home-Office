@@ -9,3 +9,15 @@ def ensure_upload_folder_exists(folder):
         except Exception as e:
             print(f"Error creating directory {folder}: {str(e)}")
             raise
+
+
+def createDictionary(table, columnMapper):
+    column_names = [column.name for column in table.columns]
+    newColumnMapper = columnMapper
+    for i in columnMapper:
+        if i == "FundHouse":
+            continue
+        newColumnMapper[i] = column_names.index(columnMapper[i])
+    print(newColumnMapper)
+    print("Modified columnMapper:", columnMapper)
+    print("End of function")
