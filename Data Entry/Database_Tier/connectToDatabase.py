@@ -164,12 +164,9 @@ def transferDataToMasterTable(fundName, reflectedTable, columnMappings):
     Base = getBase()
     Base.metadata.create_all(engine)
     try:
-        print(reflectedTable)
-        print(columnMappings)
         query = select(reflectedTable)
         result = execute_query(query)
         for row in result:
-            print(row)
             master_entry = MasterTable(
                 FundHouse=fundName,
                 InvestorName=row[columnMappings["InvestorName"]],

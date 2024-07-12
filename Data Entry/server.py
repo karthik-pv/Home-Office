@@ -24,7 +24,10 @@ def uploadFile():
     table = request.form.get("table")
     if f:
         uploadFileToServer(f, table)
-    return "file uploaded"
+        updateMasterTable(table)
+        return "file uploaded"
+    else:
+        return "please upload a file"
 
 
 @app.route("/addColumnMapperData", methods=["POST"])
