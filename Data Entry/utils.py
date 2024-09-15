@@ -15,7 +15,7 @@ def createDictionary(table, columnMapper):
     column_names = [column.name for column in table.columns]
     newColumnMapper = columnMapper
     for i in columnMapper:
-        if i == "FundHouse":
+        if i == "fund_house":
             continue
         newColumnMapper[i] = column_names.index(columnMapper[i])
     print(newColumnMapper)

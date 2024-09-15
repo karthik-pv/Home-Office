@@ -4,6 +4,7 @@ from controller import (
     uploadFileToServer,
     addColumnMap,
     updateMasterTable,
+    addTransactionRelevance,
 )
 import os
 from flask import jsonify
@@ -35,6 +36,13 @@ def addToColumnMapper():
     data = request.json.get("columnData")
     addColumnMap(data)
     return "Data added to Column Mapper"
+
+
+@app.route("/addTransactionRelevanceData", methods=["POST"])
+def addToTransactionRelevance():
+    data = request.json.get("relevanceData")
+    addTransactionRelevance(data)
+    return "Data added to Transaction Relevance Table"
 
 
 @app.route("/")

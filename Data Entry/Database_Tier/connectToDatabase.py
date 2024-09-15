@@ -2,7 +2,7 @@ import json
 from sqlalchemy import create_engine, MetaData, Table, select, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
-from Database_Tier.schema import ColumnMapper, MasterTable
+from Database_Tier.schema import ColumnMapper, MasterTable, TransactionRelevance
 from sqlalchemy.ext.declarative import declarative_base
 from Database_Tier.schema import getBase
 
@@ -14,6 +14,8 @@ class DatabaseManager:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.engine = cls._create_engine()
+            base = getBase()
+            base.metadata.create_all(cls._instance.engine)
             cls._instance.Session = sessionmaker(bind=cls._instance.engine)
         return cls._instance
 
@@ -143,7 +145,7 @@ def uploadCsvAsTable(dataframe, table):
 def fetchColumnMappings(fundName):
     session = DatabaseManager.get_session()
     try:
-        query = select(ColumnMapper).where(ColumnMapper.FundHouse == fundName)
+        query = select(ColumnMapper).where(ColumnMapper.fund_house == fundName)
         result = session.execute(query).scalar_one()
         column_mappings = {
             column: getattr(result, column)
@@ -158,7 +160,30 @@ def fetchColumnMappings(fundName):
         session.close()
 
 
-def transferDataToMasterTable(fundName, reflectedTable, columnMappings):
+def fetchTransactionRelevance(fundName):
+    session = DatabaseManager.get_session()
+    try:
+        query = select(TransactionRelevance).where(
+            TransactionRelevance.FundhouseName == fundName
+        )
+        results = session.execute(query).scalars().all()
+        transaction_relevance = {
+            getattr(result, "TransactionDesc"): getattr(result, "Offset")
+            for result in results
+            if getattr(result, "TransactionDesc") is not None
+            and getattr(result, "Offset") is not None
+        }
+        return transaction_relevance
+    except Exception as e:
+        print(f"An error occurred while fetching column relevance: {str(e)}")
+        return None
+    finally:
+        session.close()
+
+
+def transferDataToMasterTable(
+    fundName, reflectedTable, columnMappings, transactionRelevance
+):
     engine = DatabaseManager.get_engine()
     session = DatabaseManager.get_session()
     Base = getBase()
@@ -166,19 +191,25 @@ def transferDataToMasterTable(fundName, reflectedTable, columnMappings):
     try:
         query = select(reflectedTable)
         result = execute_query(query)
+
         for row in result:
-            master_entry = MasterTable(
-                FundHouse=fundName,
-                InvestorName=row[columnMappings["InvestorName"]],
-                TransactionDate=row[columnMappings["TransactionDate"]],
-                TransactionDesc=row[columnMappings["TransactionDesc"]],
-                Amount=row[columnMappings["Amount"]],
-                NAV=row[columnMappings["NAV"]],
-                Load=row[columnMappings["Load"]],
-                Units=row[columnMappings["Units"]],
-                FundDesc=row[columnMappings["FundDesc"]],
-            )
-            session.add(master_entry)
+            if row[columnMappings["transaction_desc"]] in transactionRelevance:
+                master_entry = MasterTable(
+                    fund_house=fundName,
+                    investor_name=row[columnMappings["investor_name"]],
+                    transaction_date=row[columnMappings["transaction_date"]],
+                    transaction_desc=row[columnMappings["transaction_desc"]],
+                    amount=row[columnMappings["amount"]],
+                    nav=row[columnMappings["nav"]],
+                    load=row[columnMappings["load"]],
+                    units=row[columnMappings["units"]],
+                    bal_units=row[columnMappings["bal_units"]],
+                    fund_desc=row[columnMappings["fund_desc"]],
+                    net_transaction_amt=row[columnMappings["amount"]]
+                    * transactionRelevance[row[columnMappings["transaction_desc"]]],
+                    status=True,
+                )
+                session.add(master_entry)
 
         session.commit()
         print("Data transferred successfully.")

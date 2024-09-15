@@ -9,9 +9,9 @@ from Database_Tier.connectToDatabase import (
     fetchColumnMappings,
     reflection,
     transferDataToMasterTable,
+    fetchTransactionRelevance,
 )
-from Database_Tier.schema import ColumnMapper
-
+from Database_Tier.schema import ColumnMapper, TransactionRelevance
 from utils import ensure_upload_folder_exists, createDictionary
 
 import pandas as pd
@@ -64,13 +64,26 @@ def addColumnMap(data):
         return f"An error occurred: {str(e)}"
 
 
+def addTransactionRelevance(data):
+    try:
+        newEntry = TransactionRelevance(**data)
+        addToTable(newEntry)
+        return
+    except Exception as e:
+        return f"An error occured: {str(e)}"
+
+
 def updateMasterTable(fundName):
     try:
         columnMap = fetchColumnMappings(fundName)
+        transactionRelevance = fetchTransactionRelevance(fundName)
         reflectedTable = reflection(fundName)
         createDictionary(reflectedTable, columnMap)
         transferDataToMasterTable(
-            fundName=fundName, reflectedTable=reflectedTable, columnMappings=columnMap
+            fundName=fundName,
+            reflectedTable=reflectedTable,
+            columnMappings=columnMap,
+            transactionRelevance=transactionRelevance,
         )
     except Exception as e:
         return f"An error occurred: {str(e)}"
