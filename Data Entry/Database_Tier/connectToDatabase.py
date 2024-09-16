@@ -1,5 +1,5 @@
 import json
-from sqlalchemy import create_engine, MetaData, Table, select, text
+from sqlalchemy import create_engine, MetaData, Table, select, text, inspect
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 from Database_Tier.schema import (
@@ -241,5 +241,47 @@ def transferDataToMasterTable(
     except Exception as e:
         session.rollback()
         print(f"An error occurred while transferring data: {str(e)}")
+    finally:
+        session.close()
+
+
+def fetchColumnNames(table_name):
+    engine = DatabaseManager.get_engine()
+    inspector = inspect(engine)
+
+    try:
+        columns = inspector.get_columns(table_name)
+        column_names = [column["name"] for column in columns]
+        return column_names
+    except Exception as e:
+        print(f"An error occurred while fetching column names: {str(e)}")
+        return None
+
+
+def getTransactionDescsFromTable(fundName, columnMappingToTrDesc):
+    engine = DatabaseManager.get_engine()
+    session = DatabaseManager.get_session()
+
+    try:
+
+        metadata = MetaData()
+        table = Table(fundName, metadata, autoload_with=engine)
+
+        if columnMappingToTrDesc not in table.columns:
+            raise ValueError(
+                f"Column '{columnMappingToTrDesc}' does not exist in the table '{fundName}'."
+            )
+
+        query = select(table.c[columnMappingToTrDesc]).distinct()
+
+        result = session.execute(query)
+        unique_transaction_descs = [row[0] for row in result.fetchall()]
+
+        return unique_transaction_descs
+
+    except Exception as e:
+        print(f"An error occurred while fetching transaction descriptions: {str(e)}")
+        return None
+
     finally:
         session.close()

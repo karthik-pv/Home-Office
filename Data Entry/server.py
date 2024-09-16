@@ -6,6 +6,9 @@ from controller import (
     addColumnMap,
     updateMasterTable,
     addTransactionRelevance,
+    getColumnsOfFundHouse,
+    getColumnMapperKeys,
+    getListOfTransactionDesc,
 )
 import os
 from flask import jsonify
@@ -23,7 +26,6 @@ def getListOfFunds():
 @app.route("/addFundToList", methods=["POST"])
 def addToListOfFunds():
     data = request.json.get("fundHouseName")
-    print(data)
     addToFundHouseList(data)
     return "Fund added to List"
 
@@ -60,11 +62,22 @@ def addToTransactionRelevance():
     return "Data added to Transaction Relevance Table"
 
 
-@app.route("/")
-def data():
-    fund = request.json.get("fund")
-    updateMasterTable(fund)
-    return "Read"
+@app.route("/getFundHouseColumnList")
+def getListOfTransactions():
+    data = request.args.get("fundHouse")
+    return jsonify(getColumnsOfFundHouse(data))
+
+
+@app.route("/getColumnMapperKeys")
+def getListOfKeys():
+    return jsonify(getColumnMapperKeys())
+
+
+@app.route("/getTransactionDescList")
+def getTransactionsDescs():
+    fundHouse = request.args.get("fundHouse")
+    columnMappedToTrDesc = request.args.get("mappingColumn")
+    return jsonify(getListOfTransactionDesc(fundHouse, columnMappedToTrDesc))
 
 
 if __name__ == "__main__":
