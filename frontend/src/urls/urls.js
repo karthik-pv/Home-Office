@@ -10,3 +10,6 @@ export const UPDATE_MASTER_TABLE = "/updateMasterTable";
 export const GET_FUNDHOUSES_LIST = "/getFundList";
 export const GET_SCHEMES_LIST = "/getSchemesOfFundHouse";
 export const GET_MASTER_TABLE = "/getMasterTable";
+
+export const BUSINESS_LOGIC_BASE_URL = "http://127.0.0.1:8080";
+export const GET_TRANSACTIONS = "/transactions/getAllTransactions";
