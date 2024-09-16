@@ -7,6 +7,9 @@ import {
   GET_FUNDHOUSE_COLUMNS,
   GET_TRANSACTION_DESC_LIST,
   ADD_TRANSACTION_RELEVANCE_DATA,
+  ADD_COLUMN_MAPPER_DATA,
+  ADD_FUND_TO_LIST,
+  UPDATE_MASTER_TABLE,
 } from "../urls/urls";
 
 const NewFundHouseScreen = () => {
@@ -72,6 +75,20 @@ const NewFundHouseScreen = () => {
     }));
   };
 
+  const updateMasterTable = async () => {
+    try {
+      const response = await axios.post(
+        DATA_ENTRY_BASE_URL + UPDATE_MASTER_TABLE,
+        {
+          fundName: fundHouseName,
+        }
+      );
+      console.log("Column mapper updated:", response.data);
+    } catch (error) {
+      console.log("Error updating master table" + error.message);
+    }
+  };
+
   const handleSubmitFileUpload = async (event) => {
     event.preventDefault();
     try {
@@ -79,7 +96,12 @@ const NewFundHouseScreen = () => {
       formData.append("file", file);
       formData.append("table", fundHouseName);
 
-      // Upload the file
+      const updateList = await axios.post(
+        DATA_ENTRY_BASE_URL + ADD_FUND_TO_LIST,
+        {
+          fundHouseName,
+        }
+      );
       const fileResponse = await axios.post(
         DATA_ENTRY_BASE_URL + FILE_UPLOAD,
         formData,
@@ -91,11 +113,11 @@ const NewFundHouseScreen = () => {
       );
       console.log("File uploaded:", fileResponse.data);
 
-      // Clear file input after uploading
       setFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+
       fetchKeys();
       fetchValues();
       alert(
@@ -107,10 +129,21 @@ const NewFundHouseScreen = () => {
     }
   };
 
-  const handleSubmitColumnMapping = () => {
-    alert("Column mapping submitted!");
-    // You can handle the column mapping submission here
-    console.log("Column Mapping:", columnMapping);
+  const handleColumnMappingSubmit = async () => {
+    const columnData = {
+      ...columnMapping,
+      fund_house: fundHouseName,
+    };
+
+    try {
+      const response = await axios.post(
+        DATA_ENTRY_BASE_URL + ADD_COLUMN_MAPPER_DATA,
+        { columnData }
+      );
+      console.log(response);
+    } catch (error) {
+      console.error("Error saving column mapping:", error);
+    }
   };
 
   const handleSubmitTransactionRelevance = async () => {
@@ -156,19 +189,19 @@ const NewFundHouseScreen = () => {
   }, [selectedColumn]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-900 p-6">
-      <h1 className="text-white text-3xl font-bold mb-6 text-center">
+    <div className="flex flex-col min-h-screen bg-gray-900 p-8">
+      <h1 className="text-white text-3xl font-bold mb-8 text-center">
         Add New Fundhouse
       </h1>
 
       {/* File Upload Form */}
       <form
         onSubmit={handleSubmitFileUpload}
-        className="max-w-md mx-auto bg-gray-800 p-6 rounded-lg shadow-md"
+        className="max-w-lg mx-auto bg-gray-800 p-8 rounded-lg shadow-md"
       >
-        <div className="mb-4">
+        <div className="mb-6">
           <label
-            className="block text-white text-sm font-semibold mb-2"
+            className="block text-white text-sm font-semibold mb-3"
             htmlFor="fundHouseName"
           >
             Fund House Name
@@ -178,14 +211,14 @@ const NewFundHouseScreen = () => {
             id="fundHouseName"
             value={fundHouseName}
             onChange={(e) => setFundHouseName(e.target.value)}
-            className="w-full px-4 py-2 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:border-green-500"
+            className="w-full px-4 py-3 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:border-green-500"
             required
           />
         </div>
 
-        <div className="mb-4">
+        <div className="mb-6">
           <label
-            className="block text-white text-sm font-semibold mb-2"
+            className="block text-white text-sm font-semibold mb-3"
             htmlFor="fileUpload"
           >
             Upload CSV
@@ -203,15 +236,15 @@ const NewFundHouseScreen = () => {
 
         <button
           type="submit"
-          className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 mt-6"
+          className="w-full px-4 py-3 bg-green-600 text-white rounded hover:bg-green-700"
         >
           Submit File
         </button>
       </form>
 
       {/* Column Mapping Section */}
-      <div className="mt-8">
-        <h2 className="text-white text-2xl font-bold mb-4 text-center">
+      <div className="mt-12">
+        <h2 className="text-white text-2xl font-bold mb-6 text-center">
           Column Mapper
         </h2>
         {keys.length > 0 && values.length > 0 ? (
@@ -219,7 +252,7 @@ const NewFundHouseScreen = () => {
             {keys.map((key) => (
               <div
                 key={key}
-                className="mb-4 flex items-center justify-between w-full max-w-md"
+                className="mb-6 flex items-center justify-between w-full max-w-lg"
               >
                 <label className="text-white text-sm font-semibold">
                   {key}
@@ -227,7 +260,7 @@ const NewFundHouseScreen = () => {
                 <select
                   value={columnMapping[key] || ""}
                   onChange={(e) => handleMappingChange(key, e.target.value)}
-                  className="px-4 py-2 bg-gray-700 text-white border border-gray-600 rounded w-1/2"
+                  className="px-4 py-3 bg-gray-700 text-white border border-gray-600 rounded w-1/2"
                 >
                   <option value="">Select Value</option>
                   {values.map((value) => (
@@ -239,8 +272,8 @@ const NewFundHouseScreen = () => {
               </div>
             ))}
             <button
-              onClick={handleSubmitColumnMapping}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mt-6"
+              onClick={handleColumnMappingSubmit}
+              className="px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 mt-8"
             >
               Submit Column Mapping
             </button>
@@ -251,20 +284,20 @@ const NewFundHouseScreen = () => {
       </div>
 
       {/* Transaction Relevance Section */}
-      <div className="mt-8">
-        <h2 className="text-white text-2xl font-bold mb-4 text-center">
+      <div className="mt-12">
+        <h2 className="text-white text-2xl font-bold mb-6 text-center">
           Transaction Relevance
         </h2>
 
         {values.length > 0 && (
-          <div className="flex flex-col items-center mb-4">
-            <label className="text-white text-sm font-semibold mb-2">
+          <div className="flex flex-col items-center mb-6">
+            <label className="text-white text-sm font-semibold mb-3">
               Select Column for Transaction Description:
             </label>
             <select
               value={selectedColumn}
               onChange={(e) => setSelectedColumn(e.target.value)}
-              className="px-4 py-2 bg-gray-700 text-white border border-gray-600 rounded w-1/2"
+              className="px-4 py-3 bg-gray-700 text-white border border-gray-600 rounded w-1/2"
             >
               <option value="">Select Column</option>
               {values.map((value) => (
@@ -277,28 +310,21 @@ const NewFundHouseScreen = () => {
         )}
 
         {transactionDescriptions.length > 0 ? (
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center text-center justify-center">
             {transactionDescriptions.map((desc) => (
               <div
                 key={desc}
-                className="mb-4 flex items-center justify-between w-full max-w-md"
+                className="mb-6 flex flex-col w-3/4 max-w-lg bg-gray-800 p-4 rounded-lg shadow-md justify-center items-center"
               >
-                <label className="text-white text-sm font-semibold">
-                  {desc}
-                </label>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={transactionRelevance[desc]?.isSelected || false}
-                    onChange={(e) =>
-                      handleTransactionRelevanceChange(
-                        desc,
-                        "isSelected",
-                        e.target.checked
-                      )
-                    }
-                    className="mr-2"
-                  />
+                <div className="mb-4">
+                  <span className="text-white font-semibold text-xl">
+                    {desc}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-4 mb-4">
+                  <label className="text-white text-sm font-semibold">
+                    Offset
+                  </label>
                   <select
                     value={transactionRelevance[desc]?.offset || ""}
                     onChange={(e) =>
@@ -315,13 +341,37 @@ const NewFundHouseScreen = () => {
                     <option value="-1">-1</option>
                   </select>
                 </div>
+                <div className="flex items-center space-x-4">
+                  <input
+                    type="checkbox"
+                    checked={transactionRelevance[desc]?.isSelected || false}
+                    onChange={(e) =>
+                      handleTransactionRelevanceChange(
+                        desc,
+                        "isSelected",
+                        e.target.checked
+                      )
+                    }
+                    className="h-5 w-5 text-green-600 border-gray-600 rounded"
+                  />
+                  <span className="text-white text-sm font-semibold">
+                    Include
+                  </span>
+                </div>
               </div>
             ))}
+
             <button
               onClick={handleSubmitTransactionRelevance}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mt-6"
+              className="px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 mt-8"
             >
               Submit Transaction Relevance
+            </button>
+            <button
+              onClick={updateMasterTable}
+              className="px-4 py-3 bg-red-600 text-white rounded hover:bg-red-700 mt-8 w-1/4 items-center justify-center"
+            >
+              Update Master Table
             </button>
           </div>
         ) : (

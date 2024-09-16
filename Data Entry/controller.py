@@ -12,6 +12,8 @@ from Database_Tier.connectToDatabase import (
     fetchTransactionRelevance,
     fetchColumnNames,
     getTransactionDescsFromTable,
+    getUniqueFundDescFromMasterTable,
+    get_masterTable_as_json,
 )
 from Database_Tier.schema import ColumnMapper, TransactionRelevance
 from utils import ensure_upload_folder_exists, createDictionary
@@ -102,3 +104,11 @@ def updateMasterTable(fundName):
 
 def getListOfTransactionDesc(fundName, columnMappingToTrDesc):
     return getTransactionDescsFromTable(fundName, columnMappingToTrDesc)
+
+
+def getFundSchemes(fundName):
+    return getUniqueFundDescFromMasterTable(fundName)
+
+
+def get_master_table_as_json(fund_house, fund_desc):
+    return get_masterTable_as_json(fund_house, fund_desc)

@@ -147,7 +147,7 @@ def getListOfFundsDBLogic():
 def uploadCsvAsTable(dataframe, table):
     try:
         engine = getEngine()
-        dataframe.to_sql(table, engine, if_exists="append", index=False)
+        dataframe.to_sql(table, engine, if_exists="replace", index=False)
     except Exception as e:
         print(f"An exception has occured : {str(e)}")
 
@@ -285,3 +285,55 @@ def getTransactionDescsFromTable(fundName, columnMappingToTrDesc):
 
     finally:
         session.close()
+
+
+def getUniqueFundDescFromMasterTable(fundHouseName):
+    engine = DatabaseManager.get_engine()
+    session = DatabaseManager.get_session()
+
+    try:
+        metadata = MetaData()
+        table = Table("master_table", metadata, autoload_with=engine)
+
+        query = (
+            select(table.c["fund_desc"])
+            .distinct()
+            .where(table.c["fund_house"] == fundHouseName)
+        )
+
+        result = session.execute(query)
+        unique_fund_descs = [row[0] for row in result.fetchall()]
+
+        return unique_fund_descs
+
+    except Exception as e:
+        print(f"An error occurred while fetching unique fund descriptions: {str(e)}")
+        return None
+
+    finally:
+        session.close()
+
+
+def get_masterTable_as_json(fundHouse, fundDesc):
+    session = DatabaseManager.get_session()
+    try:
+        query = session.query(MasterTable)
+
+        if fundHouse:
+            query = query.filter(MasterTable.fund_house == fundHouse)
+        if fundDesc:
+            query = query.filter(MasterTable.fund_desc == fundDesc)
+
+        results = query.all()
+        data = [row_to_dict(row) for row in results]
+
+        return json.dumps(data, default=str)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+    finally:
+        session.close()
+
+
+def row_to_dict(row):
+    return {column.name: getattr(row, column.name) for column in row.__table__.columns}

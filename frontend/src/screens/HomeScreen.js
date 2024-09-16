@@ -17,7 +17,7 @@ const HomeScreen = () => {
               Add New Fundhouse
             </button>
           </Link>
-          <Link to="/UploadCSV" className="flex-1 mx-2">
+          <Link to="/ExistingFundHouse" className="flex-1 mx-2">
             <button className="w-full h-full px-5 py-3 bg-gray-200 text-black border border-gray-500 rounded shadow-md text-xl font-bold hover:bg-gray-300">
               Upload CSV to Existing Fundhouse
             </button>

@@ -10,6 +10,8 @@ from controller import (
     getColumnsOfFundHouse,
     getColumnMapperKeys,
     getListOfTransactionDesc,
+    getFundSchemes,
+    get_master_table_as_json,
 )
 import os
 from flask import jsonify
@@ -82,6 +84,19 @@ def getTransactionsDescs():
     fundHouse = request.args.get("fundHouse")
     columnMappedToTrDesc = request.args.get("mappingColumn")
     return jsonify(getListOfTransactionDesc(fundHouse, columnMappedToTrDesc))
+
+
+@app.route("/getSchemesOfFundHouse")
+def getSchemesOfFundHouse():
+    fundHouse = request.args.get("fundHouse")
+    return jsonify(getFundSchemes(fundHouse))
+
+
+@app.route("/getMasterTable")
+def getMasterTable():
+    fund_house = request.args.get("fundHouse")
+    fund_desc = request.args.get("fund_desc")
+    return jsonify(get_master_table_as_json(fund_house, fund_desc))
 
 
 if __name__ == "__main__":
