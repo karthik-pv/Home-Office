@@ -134,7 +134,7 @@ const XirrScreen = () => {
         </div>
 
         {/* Data Table */}
-        <div className="overflow-x-auto overflow-y-auto max-h-screen">
+        <div className="overflow-x-auto overflow-y-auto max-h-fit">
           <table className="min-w-full bg-gray-800 text-white text-sm">
             <thead>
               <tr>
