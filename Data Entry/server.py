@@ -1,4 +1,5 @@
 from flask import Flask, request
+from flask_cors import CORS
 from controller import (
     addToFundHouseList,
     getListofFundHouses,
@@ -16,6 +17,8 @@ from flask import jsonify
 UPLOAD_FOLDER = os.path.join("Static_Files", "uploads")
 
 app = Flask(__name__)
+
+cors = CORS(app)
 
 
 @app.route("/getFundList")
@@ -58,6 +61,7 @@ def addToColumnMapper():
 @app.route("/addTransactionRelevanceData", methods=["POST"])
 def addToTransactionRelevance():
     data = request.json.get("relevanceData")
+    print(data)
     addTransactionRelevance(data)
     return "Data added to Transaction Relevance Table"
 
