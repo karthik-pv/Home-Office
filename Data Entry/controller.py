@@ -14,6 +14,7 @@ from Database_Tier.connectToDatabase import (
     getTransactionDescsFromTable,
     getUniqueFundDescFromMasterTable,
     get_masterTable_as_json,
+    truncate_master_table,
 )
 from Database_Tier.schema import ColumnMapper, TransactionRelevance
 from utils import ensure_upload_folder_exists, createDictionary
@@ -112,3 +113,7 @@ def getFundSchemes(fundName):
 
 def get_master_table_as_json(fund_house, fund_desc):
     return get_masterTable_as_json(fund_house, fund_desc)
+
+
+def truncateMasterTable():
+    truncate_master_table()

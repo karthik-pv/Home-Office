@@ -337,3 +337,17 @@ def get_masterTable_as_json(fundHouse, fundDesc):
 
 def row_to_dict(row):
     return {column.name: getattr(row, column.name) for column in row.__table__.columns}
+
+
+def truncate_master_table():
+    session = DatabaseManager.get_session()
+    try:
+        # Execute the delete operation to remove all rows
+        session.query(MasterTable).delete()
+        session.commit()
+        print("All rows have been deleted from MasterTable.")
+    except Exception as e:
+        session.rollback()
+        print(f"An error occurred while truncating the table: {e}")
+    finally:
+        session.close()

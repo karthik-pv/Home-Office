@@ -12,6 +12,7 @@ from controller import (
     getListOfTransactionDesc,
     getFundSchemes,
     get_master_table_as_json,
+    truncateMasterTable,
 )
 import os
 from flask import jsonify
@@ -97,6 +98,12 @@ def getMasterTable():
     fund_house = request.args.get("fundHouse")
     fund_desc = request.args.get("fund_desc")
     return jsonify(get_master_table_as_json(fund_house, fund_desc))
+
+
+@app.route("/clearMasterTable")
+def clearMasterTable():
+    truncateMasterTable()
+    return jsonify("master table cleared")
 
 
 if __name__ == "__main__":
