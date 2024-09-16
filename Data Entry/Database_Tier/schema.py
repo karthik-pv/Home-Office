@@ -1,7 +1,6 @@
 from sqlalchemy import (
     Column,
     String,
-    PrimaryKeyConstraint,
     Date,
     DOUBLE_PRECISION,
     UniqueConstraint,
@@ -12,6 +11,11 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
+
+
+class FundList(Base):
+    __tablename__ = "FundList"
+    fund_house = Column(String, primary_key=True)
 
 
 class ColumnMapper(Base):
@@ -66,6 +70,8 @@ class TransactionRelevance(Base):
     FundhouseName = Column(String, nullable=False)
     TransactionDesc = Column(String, nullable=False)
     Offset = Column(Integer, nullable=False)
+
+    __table_args__ = (UniqueConstraint("TransactionDesc", "FundhouseName"),)
 
 
 def getBase():

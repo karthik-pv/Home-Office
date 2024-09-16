@@ -2,7 +2,12 @@ import json
 from sqlalchemy import create_engine, MetaData, Table, select, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
-from Database_Tier.schema import ColumnMapper, MasterTable, TransactionRelevance
+from Database_Tier.schema import (
+    ColumnMapper,
+    MasterTable,
+    TransactionRelevance,
+    FundList,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from Database_Tier.schema import getBase
 
@@ -113,6 +118,40 @@ def reflection(table):
 # -------------------------------------------------------- LOGIC --------------------------------------------------------------------
 
 
+def addToFundHouseList(fund_house_data):
+    session = DatabaseManager.get_session()
+    try:
+        new_fund = FundList(fund_house=fund_house_data)
+        session.add(new_fund)
+        session.commit()
+        print(f"Fund house '{fund_house_data}' added successfully.")
+    except Exception as e:
+        session.rollback()
+        print(f"An error occurred while adding the fund house: {str(e)}")
+    finally:
+        session.close()
+
+
+def getListOfFundsDBLogic():
+    session = DatabaseManager.get_session()
+    try:
+        query = select(FundList.fund_house)
+        result = session.execute(query).scalars().all()
+        return result
+    except Exception as e:
+        session.rollback()
+    finally:
+        session.close()
+
+
+def uploadCsvAsTable(dataframe, table):
+    try:
+        engine = getEngine()
+        dataframe.to_sql(table, engine, if_exists="append", index=False)
+    except Exception as e:
+        print(f"An exception has occured : {str(e)}")
+
+
 def query_reflected_table(reflected_table):
     session = DatabaseManager.get_session()
     try:
@@ -124,22 +163,6 @@ def query_reflected_table(reflected_table):
         session.rollback()
     finally:
         session.close()
-
-
-def getListOfFundsDBLogic(fundTag, table):
-    try:
-        query = text(f'SELECT DISTINCT "{fundTag}" FROM "{table}"')
-        return query
-    except Exception as e:
-        print(f"An exception has occured : {str(e)}")
-
-
-def uploadCsvAsTable(dataframe, table):
-    try:
-        engine = getEngine()
-        dataframe.to_sql(table, engine, if_exists="append", index=False)
-    except Exception as e:
-        print(f"An exception has occured : {str(e)}")
 
 
 def fetchColumnMappings(fundName):
@@ -191,7 +214,8 @@ def transferDataToMasterTable(
     try:
         query = select(reflectedTable)
         result = execute_query(query)
-
+        print(transactionRelevance)
+        print(columnMappings)
         for row in result:
             if row[columnMappings["transaction_desc"]] in transactionRelevance:
                 master_entry = MasterTable(
@@ -209,6 +233,7 @@ def transferDataToMasterTable(
                     * transactionRelevance[row[columnMappings["transaction_desc"]]],
                     status=True,
                 )
+                print(master_entry)
                 session.add(master_entry)
 
         session.commit()

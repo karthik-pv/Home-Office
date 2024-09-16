@@ -2,7 +2,7 @@ import os
 from werkzeug.utils import secure_filename
 
 from Database_Tier.connectToDatabase import (
-    execute_query,
+    addToFundHouseList,
     addToTable,
     getListOfFundsDBLogic,
     uploadCsvAsTable,
@@ -19,17 +19,25 @@ import pandas as pd
 UPLOAD_FOLDER = os.path.join("Static_Files", "uploads")
 
 
-def getListofFunds():
-    query = getListOfFundsDBLogic("Fund", "NAV")
-    funds = execute_query(query)
-    result_list = [item[0] for item in funds]
-    return result_list
+def addNewFundHouse(data):
+    addToFundHouseList(data)
+    return
 
 
-def selectFundToInsertData():
-    fund_list = getListofFunds()
+def getListofFundHouses():
+    fund_list = getListOfFundsDBLogic()
+    print(fund_list)
     fund_list.sort()
     return fund_list
+
+
+def addTransactionDataToIndividualFundTable(table, file):
+    try:
+        df = pd.read_csv(file)
+        df_no_null = df.dropna(how="all")
+        uploadCsvAsTable(df_no_null, table)
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
 
 
 def uploadFileToServer(f, tableName):
@@ -39,18 +47,9 @@ def uploadFileToServer(f, tableName):
         file_path = os.path.join(UPLOAD_FOLDER, data_filename)
         print(f"Saving file to: {file_path}")
         f.save(file_path)
-        addDataToFundTable(tableName, file_path)
+        addTransactionDataToIndividualFundTable(tableName, file_path)
     except PermissionError:
         return "Permission denied: unable to save file."
-    except Exception as e:
-        return f"An error occurred: {str(e)}"
-
-
-def addDataToFundTable(table, file):
-    try:
-        df = pd.read_csv(file)
-        df_no_null = df.dropna(how="all")
-        uploadCsvAsTable(df_no_null, table)
     except Exception as e:
         return f"An error occurred: {str(e)}"
 

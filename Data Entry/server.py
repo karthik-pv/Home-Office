@@ -1,6 +1,7 @@
 from flask import Flask, request
 from controller import (
-    selectFundToInsertData,
+    addToFundHouseList,
+    getListofFundHouses,
     uploadFileToServer,
     addColumnMap,
     updateMasterTable,
@@ -16,7 +17,15 @@ app = Flask(__name__)
 
 @app.route("/getFundList")
 def getListOfFunds():
-    return jsonify(selectFundToInsertData())
+    return jsonify(getListofFundHouses())
+
+
+@app.route("/addFundToList", methods=["POST"])
+def addToListOfFunds():
+    data = request.json.get("fundHouseName")
+    print(data)
+    addToFundHouseList(data)
+    return "Fund added to List"
 
 
 @app.route("/fileUpload", methods=["POST"])
@@ -25,10 +34,16 @@ def uploadFile():
     table = request.form.get("table")
     if f:
         uploadFileToServer(f, table)
-        updateMasterTable(table)
         return "file uploaded"
     else:
         return "please upload a file"
+
+
+@app.route("/updateMasterTable", methods=["POST"])
+def updateToMasterTable():
+    data = request.json.get("fundName")
+    updateMasterTable(data)
+    return "Data updated in Master Table"
 
 
 @app.route("/addColumnMapperData", methods=["POST"])
