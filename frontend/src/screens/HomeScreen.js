@@ -10,9 +10,9 @@ const HomeScreen = () => {
         </h1>
       </header>
 
-      <div className="flex-grow flex items-center justify-center">
+      <div className="flex-grow flex items-center justify-center ">
         <div className="flex w-full max-w-3xl">
-          <Link to="/NewFundHouse" className="flex-1">
+          <Link to="/NewFundHouse" className="flex-1 mx-2">
             <button className="w-full h-full px-5 py-3 bg-gray-200 text-black border border-gray-500 rounded shadow-md text-xl font-bold hover:bg-gray-300">
               Add New Fundhouse
             </button>
@@ -22,9 +22,14 @@ const HomeScreen = () => {
               Upload CSV to Existing Fundhouse
             </button>
           </Link>
-          <Link to="/CalculateXIRR" className="flex-1">
+          <Link to="/CalculateXIRR" className="flex-1 mx-2">
             <button className="w-full h-full px-5 py-3 bg-gray-200 text-black border border-gray-500 rounded shadow-md text-xl font-bold hover:bg-gray-300">
               Calculate XIRR
+            </button>
+          </Link>
+          <Link to="/CalculateAbsoluteReturn" className="flex-1 mx-2">
+            <button className="w-full h-full px-5 py-3 bg-gray-200 text-black border border-gray-500 rounded shadow-md text-xl font-bold hover:bg-gray-300">
+              Calculate Absolute Return
             </button>
           </Link>
         </div>

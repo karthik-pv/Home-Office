@@ -16,3 +16,6 @@ export const GET_TRANSACTIONS = "/transactions/getAllTransactions";
 export const GET_TOTAL_XIRR = "/transactions/getTotalFundHouseXirr";
 export const GET_BALANCE_XIRR = "/transactions/getBalanceUnitsXirr";
 export const GET_CUSTOM_XIRR = "/transactions/getCustomUnitsXirr";
+export const GET_ABS_RETURN_TOTAL = "/transactions/getTotalAbsReturn";
+export const GET_ABS_RETURN_CUSTOM = "/transactions/getCustomUnitsAbsReturn";
+export const GET_ABS_RETURN_BALANCE = "/transactions/getBalanceUnitsAbsReturn";

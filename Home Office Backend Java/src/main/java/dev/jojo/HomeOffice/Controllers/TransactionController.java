@@ -57,4 +57,29 @@ public class TransactionController {
         return ResponseEntity.ok(transactionService.getCustomUnitsXirr(fundhouse, schemes.getFirst(),units,nav));
     }
 
+    @PostMapping("/getTotalAbsReturn")
+    public ResponseEntity<Double> getTotalAbsReturn(@RequestBody FundHouseXirrRequest data){
+        String fundhouse = data.getFundhouse();
+        List<String> schemes = data.getSchemes();
+        Double nav = data.getNav();
+        return ResponseEntity.ok(transactionService.getTotalAbsoluteReturn(fundhouse, schemes ,nav));
+    }
+
+    @PostMapping("/getBalanceUnitsAbsReturn")
+    public ResponseEntity<Double> getBalanceUnitsAbsReturn(@RequestBody FundHouseXirrRequest data){
+        String fundhouse = data.getFundhouse();
+        Iterable<String> schemes = data.getSchemes();
+        Double nav = data.getNav();
+        return ResponseEntity.ok(transactionService.getBalanceUnitsAbsReturnCore(fundhouse,schemes,nav));
+    }
+
+    @PostMapping("/getCustomUnitsAbsReturn")
+    public ResponseEntity<Double> getCustomUnitsAbsReturn(@RequestBody FundHouseXirrRequest data){
+        String fundhouse = data.getFundhouse();
+        List<String> schemes = data.getSchemes();
+        Double units = data.getUnits();
+        Double nav = data.getNav();
+        return ResponseEntity.ok(transactionService.getCustomUnitsAbsoluteReturn(fundhouse,schemes.getFirst(),units,nav));
+    }
+
 }

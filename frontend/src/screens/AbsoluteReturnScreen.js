@@ -3,22 +3,22 @@ import axios from "axios";
 import {
   BUSINESS_LOGIC_BASE_URL,
   DATA_ENTRY_BASE_URL,
-  GET_BALANCE_XIRR,
-  GET_CUSTOM_XIRR,
+  GET_ABS_RETURN_TOTAL,
+  GET_ABS_RETURN_BALANCE,
+  GET_ABS_RETURN_CUSTOM,
   GET_FUNDHOUSES_LIST,
   GET_MASTER_TABLE,
   GET_SCHEMES_LIST,
-  GET_TOTAL_XIRR,
 } from "../urls/urls";
 
-const XirrScreen = () => {
+const AbsoluteReturnScreen = () => {
   const [fundHouseList, setFundHouseList] = useState([]);
   const [schemeList, setSchemeList] = useState([]);
   const [selectedFundHouse, setSelectedFundHouse] = useState(null);
   const [selectedScheme, setSelectedScheme] = useState(null);
   const [data, setData] = useState([]);
-  const [units, setUnits] = useState(0);
-  const [nav, setNav] = useState(0);
+  const [units, setUnits] = useState(0); // State for custom units
+  const [nav, setNav] = useState(""); // State for NAV input
 
   const fetchData = async () => {
     try {
@@ -90,20 +90,7 @@ const XirrScreen = () => {
     fetchFundHouseList();
   }, []);
 
-  const handleCalculateXirr = () => {
-    if (!selectedFundHouse || !selectedScheme || !units) {
-      alert("Please select Fund House, Scheme, and enter the number of units.");
-      return;
-    }
-
-    console.log("Calculating XIRR with:", {
-      selectedFundHouse,
-      selectedScheme,
-      units,
-    });
-  };
-
-  const handleTotalXirr = async () => {
+  const handleTotalAbsoluteReturn = async () => {
     if (!selectedFundHouse) {
       alert("Please select Fund House");
       return;
@@ -112,7 +99,7 @@ const XirrScreen = () => {
     let requestBody = {
       fundhouse: selectedFundHouse,
       schemes: schemeList,
-      nav: 380.004,
+      nav: parseFloat(nav), // Use the entered NAV value
     };
 
     if (selectedScheme) {
@@ -121,18 +108,18 @@ const XirrScreen = () => {
 
     try {
       const response = await axios.post(
-        BUSINESS_LOGIC_BASE_URL + GET_TOTAL_XIRR,
+        BUSINESS_LOGIC_BASE_URL + GET_ABS_RETURN_TOTAL,
         requestBody
       );
-      const xirrValue = response.data;
-      alert(`Total XIRR: ${xirrValue}`);
+      const absReturnValue = response.data;
+      alert(`Total Absolute Return: ${absReturnValue}`);
     } catch (error) {
-      console.error("Error fetching Total XIRR:", error);
-      alert("Error fetching Total XIRR.");
+      console.error("Error fetching Total Absolute Return:", error);
+      alert("Error fetching Total Absolute Return.");
     }
   };
 
-  const handleBalanceUnitsXirr = async () => {
+  const handleBalanceUnitsAbsoluteReturn = async () => {
     if (!selectedFundHouse) {
       alert("Please select Fund House");
       return;
@@ -141,7 +128,7 @@ const XirrScreen = () => {
     let requestBody = {
       fundhouse: selectedFundHouse,
       schemes: schemeList,
-      nav: 380.004,
+      nav: parseFloat(nav), // Use the entered NAV value
     };
 
     if (selectedScheme) {
@@ -150,18 +137,18 @@ const XirrScreen = () => {
 
     try {
       const response = await axios.post(
-        BUSINESS_LOGIC_BASE_URL + GET_BALANCE_XIRR,
+        BUSINESS_LOGIC_BASE_URL + GET_ABS_RETURN_BALANCE,
         requestBody
       );
-      const xirrValue = response.data;
-      alert(`Total XIRR: ${xirrValue}`);
+      const absReturnValue = response.data;
+      alert(`Absolute Return for Balance Units: ${absReturnValue}`);
     } catch (error) {
-      console.error("Error fetching Total XIRR:", error);
-      alert("Error fetching Total XIRR.");
+      console.error("Error fetching Absolute Return for Balance Units:", error);
+      alert("Error fetching Absolute Return for Balance Units.");
     }
   };
 
-  const handleCustomUnitsXirr = async () => {
+  const handleCustomUnitsAbsoluteReturn = async () => {
     if (!selectedFundHouse) {
       alert("Please select Fund House");
       return;
@@ -170,7 +157,7 @@ const XirrScreen = () => {
     let requestBody = {
       fundhouse: selectedFundHouse,
       schemes: schemeList,
-      nav: 380.004,
+      nav: parseFloat(nav), // Use the entered NAV value
       units: units,
     };
 
@@ -180,21 +167,21 @@ const XirrScreen = () => {
 
     try {
       const response = await axios.post(
-        BUSINESS_LOGIC_BASE_URL + GET_CUSTOM_XIRR,
+        BUSINESS_LOGIC_BASE_URL + GET_ABS_RETURN_CUSTOM,
         requestBody
       );
-      const xirrValue = response.data;
-      alert(`Total XIRR: ${xirrValue}`);
+      const absReturnValue = response.data;
+      alert(`Absolute Return for Custom Units: ${absReturnValue}`);
     } catch (error) {
-      console.error("Error fetching Total XIRR:", error);
-      alert("Error fetching Total XIRR.");
+      console.error("Error fetching Absolute Return for Custom Units:", error);
+      alert("Error fetching Absolute Return for Custom Units.");
     }
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-900 p-8">
       <h1 className="text-white text-3xl font-bold mb-8 text-center">
-        Calculate XIRR
+        Calculate Absolute Return
       </h1>
 
       <div className="max-w-lg mx-auto bg-gray-800 p-6 rounded-lg shadow-md">
@@ -273,7 +260,6 @@ const XirrScreen = () => {
           <input
             id="navInput"
             type="number"
-            step="0.01"
             value={nav}
             onChange={handleNavChange}
             className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded text-sm"
@@ -310,24 +296,24 @@ const XirrScreen = () => {
 
         <div className="flex justify-between mb-4 space-x-2">
           <button
-            onClick={handleTotalXirr}
+            onClick={handleTotalAbsoluteReturn}
             className="flex-grow px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-center"
           >
-            Total XIRR
+            Total Absolute Return
           </button>
 
           <button
-            onClick={handleBalanceUnitsXirr}
+            onClick={handleBalanceUnitsAbsoluteReturn}
             className="flex-grow px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-center"
           >
-            XIRR for Balance Units
+            Absolute Return for Balance Units
           </button>
 
           <button
-            onClick={handleCustomUnitsXirr}
-            className="flex-grow px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-center"
+            onClick={handleCustomUnitsAbsoluteReturn}
+            className="flex-grow px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 text-center"
           >
-            XIRR for Custom Units
+            Absolute Return for Custom Units
           </button>
         </div>
       </div>
@@ -335,4 +321,4 @@ const XirrScreen = () => {
   );
 };
 
-export default XirrScreen;
+export default AbsoluteReturnScreen;

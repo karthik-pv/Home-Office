@@ -69,7 +69,7 @@ public class TransactionService {
                     .comparing(Transaction::getTransactionDate)
                     .thenComparing(Transaction::getId));
             Collections.reverse(transactionList);
-            Double balanceUnits = transactionList.getFirst().getBalUnits();
+               Double balanceUnits = transactionList.getFirst().getBalUnits();
             List<Transaction> returnable = new ArrayList<>();
             for(Transaction transaction : transactionList){
                 System.out.println(balanceUnits);
@@ -239,4 +239,151 @@ public class TransactionService {
             return 0.0;
         }
     }
+
+    public double getTotalAbsoluteReturn(String fundHouse,Iterable<String> schemes , double nav){
+        List<Transaction> temp;
+        Double TotalBuy = 0.00;
+        Double TotalSell = 0.00;
+        Double BalanceUnits = 0.00;
+        for(String scheme : schemes){
+            temp = transactionRepository.findByFundHouseAndFundDesc(fundHouse,scheme);
+            temp.sort(Comparator
+                    .comparing(Transaction::getTransactionDate)
+                    .thenComparing(Transaction::getId));
+
+            for(Transaction individualTransaction : temp) {
+                BalanceUnits = individualTransaction.getBalUnits();
+                if(individualTransaction.getNetTransactionAmt()>0){
+                    TotalSell+= individualTransaction.getNetTransactionAmt();
+                }
+                else{
+                    TotalBuy+= individualTransaction.getNetTransactionAmt()*-1;
+                }
+            }
+            TotalSell+=BalanceUnits*nav;
+        }
+        return ((TotalSell-TotalBuy)/TotalBuy);
+    }
+
+    public double getBalanceUnitsAbsReturnCore(String fundhouse, Iterable<String> schemes, double nav) {
+        try {
+            List<Transaction> allRelevantTransactions = new ArrayList<>();
+            Double totalSell = 0.00;
+            Double totalBuy = 0.00;
+
+            // Iterate through all schemes to collect relevant transactions
+            for (String scheme : schemes) {
+                List<Transaction> transactions = transactionRepository.findByFundHouseAndFundDesc(fundhouse, scheme);
+
+                // Sort transactions by date and id, then reverse to process recent transactions first
+                transactions.sort(Comparator
+                        .comparing(Transaction::getTransactionDate)
+                        .thenComparing(Transaction::getId));
+                Collections.reverse(transactions);
+
+                // Calculate the balance units and absolute return for each scheme
+                if (!transactions.isEmpty()) {
+                    Double balanceUnits = transactions.get(0).getBalUnits();
+                    Double initialBalanceUnits = balanceUnits;
+
+                    for (Transaction transaction : transactions) {
+                        System.out.println("Remaining Balance Units: " + balanceUnits);
+
+                        // Skip if it's a sell transaction (NetTransactionAmt > 0)
+                        if (transaction.getNetTransactionAmt() > 0) {
+                            continue;
+                        }
+
+                        // If balance units are less than or equal to 0, break the loop
+                        if (balanceUnits < 1) {
+                            break;
+                        }
+
+                        // If balance units exceed the transaction's units, deduct from balance units
+                        if (balanceUnits > transaction.getUnits()) {
+                            balanceUnits -= transaction.getUnits();
+                            allRelevantTransactions.add(transaction);
+                        } else {
+                            // If remaining balance units are less, set the appropriate amount and break
+                            transaction.setNetTransactionAmt(balanceUnits * transaction.getNav() * -1);
+                            transaction.setUnits(balanceUnits);
+                            allRelevantTransactions.add(transaction);
+                            balanceUnits = 0.0;
+                            break;
+                        }
+                    }
+
+                    // If there are remaining balance units, add a new transaction for the final value at the given NAV
+                    if (initialBalanceUnits > 0) {
+                        Transaction newTransaction = new Transaction();
+                        newTransaction.setNetTransactionAmt(initialBalanceUnits * nav);
+                        newTransaction.setUnits(initialBalanceUnits);
+                        newTransaction.setNav(nav);
+                        newTransaction.setTransactionDesc("Remaining units at NAV");
+                        allRelevantTransactions.add(newTransaction);
+                    }
+                }
+            }
+
+            // Calculate the total buy and sell amounts
+            if (!allRelevantTransactions.isEmpty()) {
+                for (Transaction individualTransaction : allRelevantTransactions) {
+                    System.out.println("Net Transaction Amount: " + individualTransaction.getNetTransactionAmt());
+
+                    if (individualTransaction.getNetTransactionAmt() > 0) {
+                        totalSell += individualTransaction.getNetTransactionAmt();
+                    } else {
+                        totalBuy += individualTransaction.getNetTransactionAmt() * -1;
+                    }
+                }
+
+                // Return the absolute return as ((TotalSell - TotalBuy) / TotalBuy)
+                return ((totalSell - totalBuy) / totalBuy);
+            } else {
+                return 0.0; // No transactions found, return zero absolute return
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    public double getCustomUnitsAbsoluteReturn(String fundhouse, String scheme, Double units, Double nav) {
+        try {
+            // Fetch the relevant transactions based on the fundhouse and scheme
+            Iterable<Transaction> transactions = transactionRepository.findByFundHouseAndFundDesc(fundhouse, scheme);
+
+            // Get the processed transactions for the custom number of units
+            Iterable<Transaction> customUnitsTransactions = getCustomNumberUnitsTransaction(transactions, units);
+
+            // Initialize total sell and total buy amounts
+            Double totalSell = 0.0;
+            Double totalBuy = 0.0;
+
+            // Iterate over the transactions and calculate total buy and sell amounts
+            for (Transaction transaction : customUnitsTransactions) {
+                if (transaction.getNetTransactionAmt() > 0) {
+                    // Add to totalSell for positive (sell) transactions
+                    totalSell += transaction.getNetTransactionAmt();
+                } else {
+                    // Add to totalBuy for negative (buy) transactions
+                    totalBuy += transaction.getNetTransactionAmt() * -1;
+                }
+            }
+
+            // Add a final transaction representing the remaining units at the given NAV
+            double remainingUnitsValue = units * nav;
+            totalSell += remainingUnitsValue;
+
+            // Calculate and return the absolute return as ((TotalSell - TotalBuy) / TotalBuy)
+            if (totalBuy > 0) {
+                return ((totalSell - totalBuy) / totalBuy);
+            } else {
+                // In case there's no buy transaction, return 0 to avoid division by zero
+                return 0.0;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
 }
