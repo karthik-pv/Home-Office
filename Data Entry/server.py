@@ -38,6 +38,7 @@ def addToListOfFunds():
 
 @app.route("/fileUpload", methods=["POST"])
 def uploadFile():
+    clearMasterTable()
     f = request.files.get("file")
     table = request.form.get("table")
     if f:
