@@ -13,3 +13,6 @@ export const GET_MASTER_TABLE = "/getMasterTable";
 
 export const BUSINESS_LOGIC_BASE_URL = "http://127.0.0.1:8080";
 export const GET_TRANSACTIONS = "/transactions/getAllTransactions";
+export const GET_TOTAL_XIRR = "/transactions/getTotalFundHouseXirr";
+export const GET_BALANCE_XIRR = "/transactions/getBalanceUnitsXirr";
+export const GET_CUSTOM_XIRR = "/transactions/getCustomUnitsXirr";

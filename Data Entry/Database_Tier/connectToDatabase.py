@@ -324,6 +324,8 @@ def get_masterTable_as_json(fundHouse, fundDesc):
         if fundDesc:
             query = query.filter(MasterTable.fund_desc == fundDesc)
 
+        query = query.order_by(MasterTable.transaction_date)
+
         results = query.all()
         data = [row_to_dict(row) for row in results]
 

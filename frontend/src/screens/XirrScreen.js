@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
+  BUSINESS_LOGIC_BASE_URL,
   DATA_ENTRY_BASE_URL,
+  GET_BALANCE_XIRR,
+  GET_CUSTOM_XIRR,
   GET_FUNDHOUSES_LIST,
   GET_MASTER_TABLE,
   GET_SCHEMES_LIST,
+  GET_TOTAL_XIRR,
 } from "../urls/urls";
 
 const XirrScreen = () => {
@@ -13,6 +17,7 @@ const XirrScreen = () => {
   const [selectedFundHouse, setSelectedFundHouse] = useState(null);
   const [selectedScheme, setSelectedScheme] = useState(null);
   const [data, setData] = useState([]);
+  const [units, setUnits] = useState(0); // State for custom units
 
   const fetchData = async () => {
     try {
@@ -29,7 +34,9 @@ const XirrScreen = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    if (selectedFundHouse && selectedScheme) {
+      fetchData();
+    }
   }, [selectedFundHouse, selectedScheme]);
 
   // Fetch fund house list
@@ -44,7 +51,6 @@ const XirrScreen = () => {
     }
   };
 
-  // Fetch schemes based on selected fund house
   const fetchSchemes = async (fundHouse) => {
     try {
       const response = await axios.get(DATA_ENTRY_BASE_URL + GET_SCHEMES_LIST, {
@@ -56,11 +62,10 @@ const XirrScreen = () => {
     }
   };
 
-  // Handle fund house selection
   const handleFundHouseChange = (event) => {
     const fundHouse = event.target.value;
     setSelectedFundHouse(fundHouse);
-    setSelectedScheme(""); // Clear selected scheme when fund house changes
+    setSelectedScheme("");
     if (fundHouse) {
       fetchSchemes(fundHouse);
     } else {
@@ -68,14 +73,118 @@ const XirrScreen = () => {
     }
   };
 
-  // Handle scheme selection
   const handleSchemeChange = (event) => {
     setSelectedScheme(event.target.value);
+  };
+
+  const handleUnitsChange = (event) => {
+    setUnits(event.target.value);
   };
 
   useEffect(() => {
     fetchFundHouseList();
   }, []);
+
+  const handleCalculateXirr = () => {
+    if (!selectedFundHouse || !selectedScheme || !units) {
+      alert("Please select Fund House, Scheme, and enter the number of units.");
+      return;
+    }
+
+    console.log("Calculating XIRR with:", {
+      selectedFundHouse,
+      selectedScheme,
+      units,
+    });
+  };
+
+  const handleTotalXirr = async () => {
+    if (!selectedFundHouse) {
+      alert("Please select Fund House");
+      return;
+    }
+
+    let requestBody = {
+      fundhouse: selectedFundHouse,
+      schemes: schemeList,
+      nav: 380.004,
+    };
+
+    if (selectedScheme) {
+      requestBody.schemes = [selectedScheme];
+    }
+
+    try {
+      const response = await axios.post(
+        BUSINESS_LOGIC_BASE_URL + GET_TOTAL_XIRR,
+        requestBody
+      );
+      const xirrValue = response.data;
+      alert(`Total XIRR: ${xirrValue}`);
+    } catch (error) {
+      console.error("Error fetching Total XIRR:", error);
+      alert("Error fetching Total XIRR.");
+    }
+  };
+
+  const handleBalanceUnitsXirr = async () => {
+    if (!selectedFundHouse) {
+      alert("Please select Fund House");
+      return;
+    }
+
+    let requestBody = {
+      fundhouse: selectedFundHouse,
+      schemes: schemeList,
+      nav: 380.004,
+    };
+
+    if (selectedScheme) {
+      requestBody.schemes = [selectedScheme];
+    }
+
+    try {
+      const response = await axios.post(
+        BUSINESS_LOGIC_BASE_URL + GET_BALANCE_XIRR,
+        requestBody
+      );
+      const xirrValue = response.data;
+      alert(`Total XIRR: ${xirrValue}`);
+    } catch (error) {
+      console.error("Error fetching Total XIRR:", error);
+      alert("Error fetching Total XIRR.");
+    }
+  };
+
+  const handleCustomUnitsXirr = async () => {
+    if (!selectedFundHouse) {
+      alert("Please select Fund House");
+      return;
+    }
+
+    let requestBody = {
+      fundhouse: selectedFundHouse,
+      schemes: schemeList,
+      nav: 380.004,
+      units: units,
+    };
+
+    if (selectedScheme) {
+      requestBody.schemes = [selectedScheme];
+    }
+
+    try {
+      const response = await axios.post(
+        BUSINESS_LOGIC_BASE_URL + GET_CUSTOM_XIRR,
+        requestBody
+      );
+      const xirrValue = response.data;
+      alert(`Total XIRR: ${xirrValue}`);
+    } catch (error) {
+      console.error("Error fetching Total XIRR:", error);
+      alert("Error fetching Total XIRR.");
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-900 p-8">
@@ -84,7 +193,6 @@ const XirrScreen = () => {
       </h1>
 
       <div className="max-w-lg mx-auto bg-gray-800 p-6 rounded-lg shadow-md">
-        {/* Fund House Dropdown */}
         <div className="mb-4">
           <label
             className="block text-white text-sm font-semibold mb-2"
@@ -108,7 +216,6 @@ const XirrScreen = () => {
           </select>
         </div>
 
-        {/* Scheme Dropdown */}
         <div className="mb-4">
           <label
             className="block text-white text-sm font-semibold mb-2"
@@ -133,8 +240,25 @@ const XirrScreen = () => {
           </select>
         </div>
 
-        {/* Data Table */}
-        <div className="overflow-x-auto overflow-y-auto max-h-fit">
+        <div className="mb-4">
+          <label
+            className="block text-white text-sm font-semibold mb-2"
+            htmlFor="unitsInput"
+          >
+            Enter Number of Units
+          </label>
+          <input
+            id="unitsInput"
+            type="number"
+            value={units}
+            onChange={handleUnitsChange}
+            className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded text-sm"
+            placeholder="Enter Units"
+            required
+          />
+        </div>
+
+        <div className="overflow-x-auto overflow-y-auto max-h-fit mb-4">
           <table className="min-w-full bg-gray-800 text-white text-sm">
             <thead>
               <tr>
@@ -160,8 +284,28 @@ const XirrScreen = () => {
           </table>
         </div>
 
-        {/* Placeholder for XIRR Calculation */}
-        {/* Add your XIRR calculation logic here */}
+        <div className="flex justify-between mb-4 space-x-2">
+          <button
+            onClick={handleTotalXirr}
+            className="flex-grow px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-center"
+          >
+            Total XIRR
+          </button>
+
+          <button
+            onClick={handleBalanceUnitsXirr}
+            className="flex-grow px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-center"
+          >
+            XIRR for Balance Units
+          </button>
+
+          <button
+            onClick={handleCustomUnitsXirr}
+            className="flex-grow px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-center"
+          >
+            XIRR for Custom Units
+          </button>
+        </div>
       </div>
     </div>
   );
