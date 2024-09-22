@@ -11,7 +11,6 @@ public interface TransactionRepository extends CrudRepository<Transaction, Integ
 
     List<Transaction> findByFundHouseAndFundDesc(String fundHouse, String fundDesc);
 
-    // Method to fetch transactions by fundHouse only
     List<Transaction> findByFundHouse(String fundHouse);
 
 }

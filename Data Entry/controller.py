@@ -1,5 +1,6 @@
 import os
 from werkzeug.utils import secure_filename
+import requests
 
 from Database_Tier.connectToDatabase import (
     addToFundHouseList,
@@ -22,6 +23,7 @@ from utils import ensure_upload_folder_exists, createDictionary
 import pandas as pd
 
 UPLOAD_FOLDER = os.path.join("Static_Files", "uploads")
+NAV_URL = "https://www.amfiindia.com/spages/NAVAll.txt"
 
 
 def addNewFundHouse(data):
@@ -117,3 +119,35 @@ def get_master_table_as_json(fund_house, fund_desc):
 
 def truncateMasterTable():
     truncate_master_table()
+
+
+def fetch_and_store_nav_data():
+    try:
+        response = requests.get(NAV_URL)
+        response.raise_for_status()
+
+        raw_data = response.text.splitlines()
+        data = []
+        for line in raw_data:
+            if ";" in line:
+                data.append(line.split(";"))
+
+        df = pd.DataFrame(
+            data,
+            columns=[
+                "Scheme Code",
+                "ISIN Div Payout/ ISIN Growth",
+                "ISIN Div Reinvestment",
+                "Scheme Name",
+                "Net Asset Value",
+                "Date",
+            ],
+        )
+        df["Net Asset Value"] = pd.to_numeric(df["Net Asset Value"], errors="coerce")
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+
+        uploadCsvAsTable(df, "nav_holder")
+
+        return {"message": "Data successfully inserted into PostgreSQL"}
+    except Exception as e:
+        return {"error": str(e)}, 500

@@ -13,9 +13,13 @@ from controller import (
     getFundSchemes,
     get_master_table_as_json,
     truncateMasterTable,
+    fetch_and_store_nav_data,
 )
 import os
 from flask import jsonify
+import threading
+from gRPCserver import run_grpc_server
+
 
 UPLOAD_FOLDER = os.path.join("Static_Files", "uploads")
 
@@ -107,5 +111,12 @@ def clearMasterTable():
     return jsonify("master table cleared")
 
 
+@app.route("/getAndStoreNAVData")
+def getNAVDataFromWeb():
+    return jsonify(fetch_and_store_nav_data())
+
+
 if __name__ == "__main__":
+    grpc_thread = threading.Thread(target=run_grpc_server)
+    # grpc_thread.start()
     app.run(debug=True)

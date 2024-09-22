@@ -197,6 +197,19 @@ public class TransactionService {
         return xirrTransactions;
     }
 
+    public Iterable<Transaction> getTotalTransactions(String fundhouse , Iterable<String> schemes){
+        ArrayList<Transaction> allTransactions = new ArrayList<>();
+        ArrayList<Transaction> temp = new ArrayList<>();
+        Double netTransactionAmt=0.0;
+        for(String scheme : schemes){
+            temp = (ArrayList<Transaction>) transactionRepository.findByFundHouseAndFundDesc(fundhouse,scheme);
+            temp.sort(Comparator
+                    .comparing(Transaction::getTransactionDate)
+                    .thenComparing(Transaction::getId));
+            netTransactionAmt = temp.getLast().getBalUnits();
+        }
+        return allTransactions;
+    }
 
     public double getTotalXirr(String fundhouse , Iterable<String> schemes , double nav){
         ArrayList<org.decampo.xirr.Transaction> allRelevantTransactions = new ArrayList<>();
