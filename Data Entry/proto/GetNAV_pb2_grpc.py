@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from protos import getNAV_pb2 as protos_dot_getNAV__pb2
+from proto import GetNAV_pb2 as proto_dot_GetNAV__pb2
 
 GRPC_GENERATED_VERSION = '1.66.1'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in protos/getNAV_pb2_grpc.py depends on'
+        + f' but the generated code in proto/GetNAV_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -36,8 +36,8 @@ class getNAVStub(object):
         """
         self.GetData = channel.unary_unary(
                 '/getNAV.getNAV/GetData',
-                request_serializer=protos_dot_getNAV__pb2.Request.SerializeToString,
-                response_deserializer=protos_dot_getNAV__pb2.Response.FromString,
+                request_serializer=proto_dot_GetNAV__pb2.Request.SerializeToString,
+                response_deserializer=proto_dot_GetNAV__pb2.Response.FromString,
                 _registered_method=True)
 
 
@@ -55,8 +55,8 @@ def add_getNAVServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'GetData': grpc.unary_unary_rpc_method_handler(
                     servicer.GetData,
-                    request_deserializer=protos_dot_getNAV__pb2.Request.FromString,
-                    response_serializer=protos_dot_getNAV__pb2.Response.SerializeToString,
+                    request_deserializer=proto_dot_GetNAV__pb2.Request.FromString,
+                    response_serializer=proto_dot_GetNAV__pb2.Response.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -84,8 +84,8 @@ class getNAV(object):
             request,
             target,
             '/getNAV.getNAV/GetData',
-            protos_dot_getNAV__pb2.Request.SerializeToString,
-            protos_dot_getNAV__pb2.Response.FromString,
+            proto_dot_GetNAV__pb2.Request.SerializeToString,
+            proto_dot_GetNAV__pb2.Response.FromString,
             options,
             channel_credentials,
             insecure,

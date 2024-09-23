@@ -17,8 +17,8 @@ from controller import (
 )
 import os
 from flask import jsonify
-import threading
-from gRPCserver import run_grpc_server
+from grpcServer import serveGrpc
+from threading import Thread
 
 
 UPLOAD_FOLDER = os.path.join("Static_Files", "uploads")
@@ -116,7 +116,16 @@ def getNAVDataFromWeb():
     return jsonify(fetch_and_store_nav_data())
 
 
+def serveHttp():
+    app.run(debug=False, use_reloader=False)
+
+
 if __name__ == "__main__":
-    grpc_thread = threading.Thread(target=run_grpc_server)
-    # grpc_thread.start()
-    app.run(debug=True)
+    grpc_thread = Thread(target=serveGrpc)
+    http_thread = Thread(target=serveHttp)
+
+    grpc_thread.start()
+    http_thread.start()
+
+    grpc_thread.join()
+    http_thread.join()
