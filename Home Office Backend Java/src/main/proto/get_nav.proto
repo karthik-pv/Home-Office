@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+message Request {
+  string query = 1; // Input query
+}
+
+message Response {
+  double result = 1; // Result of the query
+}
+
+// Service definition for GetNAV
+service get_nav {
+  rpc GetData (Request) returns (Response); // RPC method to get data
+}
