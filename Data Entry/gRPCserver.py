@@ -16,8 +16,8 @@ class Greeter(get_nav_pb2_grpc.get_navServicer):
 
         try:
             result = self.process_query(request.query)
-            print(result.nav)
-            return get_nav_pb2.Response(result=result)
+            print(result)
+            return get_nav_pb2.Response(result=result["nav"])
 
         except Exception as e:
             context.set_code(grpc.StatusCode.INTERNAL)

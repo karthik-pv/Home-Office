@@ -31,13 +31,12 @@ public class TransactionController {
         return ResponseEntity.ok(transactionService.getFundHouseSchemeTransactions(fundhouse, scheme));
     }
 
-    @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping("/getTotalFundHouseXirr")
     public ResponseEntity<Double> getTotalFundHouseXirr(@RequestBody FundHouseXirrRequest data) {
         String fundhouse = data.getFundhouse();
         Iterable<String> schemes = data.getSchemes();
         Double nav = data.getNav();
-        return ResponseEntity.ok(transactionService.getTotalXirr(fundhouse, schemes,nav));
+        return ResponseEntity.ok(transactionService.getTotalXirr(fundhouse, schemes));
     }
 
     @PostMapping("/getBalanceUnitsXirr")

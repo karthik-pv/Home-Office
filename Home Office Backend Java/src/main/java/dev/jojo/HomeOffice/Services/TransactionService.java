@@ -5,7 +5,6 @@ import dev.jojo.HomeOffice.GrpcClient;
 import dev.jojo.HomeOffice.Repositories.TransactionRepository;
 import org.decampo.xirr.Xirr;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.support.NullValue;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
@@ -64,40 +63,6 @@ public class TransactionService {
         }
     }
 
-    public Iterable<Transaction> getBalanceUnitsTransactions(Iterable<Transaction> transactions){
-        try{
-            List<Transaction> transactionList = new ArrayList<>();
-            transactions.forEach(transactionList::add);
-            transactionList.sort(Comparator
-                    .comparing(Transaction::getTransactionDate)
-                    .thenComparing(Transaction::getId));
-            Collections.reverse(transactionList);
-               Double balanceUnits = transactionList.getFirst().getBalUnits();
-            List<Transaction> returnable = new ArrayList<>();
-            for(Transaction transaction : transactionList){
-                System.out.println(balanceUnits);
-                if(transaction.getNetTransactionAmt()>0){
-                    continue;
-                }
-                if(balanceUnits<1){
-                    break;
-                }
-                if (balanceUnits>transaction.getUnits()) {
-                    balanceUnits=balanceUnits-transaction.getUnits();
-                    returnable.add(transaction);
-                }
-                else{
-                    transaction.setNetTransactionAmt(balanceUnits*transaction.getNav()*-1);
-                    returnable.add(transaction);
-                    break;
-                }
-            }
-            Collections.reverse(returnable);
-            return returnable;
-        } catch(Exception e){
-            throw new RuntimeException(e.getMessage());
-        }
-    }
 
     public Iterable<Transaction> getCustomNumberUnitsTransaction(Iterable<Transaction> transactions, Double units) {
         try {
@@ -108,7 +73,6 @@ public class TransactionService {
             Double balanceUnits = units;
             Double soldUnits = 0.0;
 
-            // Collect transactions into a list and sort by date
             transactions.forEach(transactionList::add);
             transactionList.sort(Comparator
                     .comparing(Transaction::getTransactionDate)
@@ -116,7 +80,6 @@ public class TransactionService {
 
             Collections.reverse(transactionList);
 
-            // Traverse in reverse and collect transactions until we find one with zero balance units
             for (Transaction transaction : transactionList) {
                 if (transaction.getBalUnits() == 0.0) {
                     break;
@@ -125,7 +88,6 @@ public class TransactionService {
             }
             Collections.reverse(postZeroTransactions);
 
-            // Separate buy and sell transactions
             for (Transaction transaction : postZeroTransactions) {
                 if (transaction.getNetTransactionAmt() > 0) {
                     soldUnits += transaction.getUnits();
@@ -134,23 +96,21 @@ public class TransactionService {
                 }
             }
 
-            // Handle sold units
             Iterator<Transaction> iterator = buyTransactions.iterator();
             while (iterator.hasNext()) {
                 Transaction transaction = iterator.next();
                 if (transaction.getUnits() < soldUnits) {
                     soldUnits -= transaction.getUnits();
-                    iterator.remove(); // Remove the transaction from the list
+                    iterator.remove();
                 } else {
                     Double remainingUnits = transaction.getUnits() - soldUnits;
                     transaction.setUnits(remainingUnits);
                     transaction.setAmount(remainingUnits * transaction.getNav() * -1);
-                    soldUnits = 0.0; // All sold units have been processed
+                    soldUnits = 0.0;
                     break;
                 }
             }
 
-            // Add the remaining buy transactions to returnable
             for (Transaction buyTransaction : buyTransactions) {
                 if (buyTransaction.getUnits() <= balanceUnits) {
                     balanceUnits -= buyTransaction.getUnits();
@@ -164,7 +124,6 @@ public class TransactionService {
                 }
             }
 
-            // Print the result for debugging
             for (Transaction t : returnable) {
                 System.out.println("Units: " + t.getUnits() + ", Amount: " + t.getAmount() + ", Date: " + t.getTransactionDate());
             }
@@ -177,7 +136,7 @@ public class TransactionService {
 
 
 
-    public List<org.decampo.xirr.Transaction> mapToXirrTransactions(Iterable<Transaction> transactions , double Units , double nav) {
+    public List<org.decampo.xirr.Transaction> mapToXirrTransactions(Iterable<Transaction> transactions ) {
         List<org.decampo.xirr.Transaction> xirrTransactions = new ArrayList<>();
         LocalDate date;
         Double amount;
@@ -196,8 +155,8 @@ public class TransactionService {
         ArrayList<Transaction> temp = new ArrayList<>();
         Double netTransactionAmt=0.0;
         Double nav = 0.0;
-        for(String scheme : schemes){
-            temp = (ArrayList<Transaction>) transactionRepository.findByFundHouseAndFundDesc(fundhouse,scheme);
+        for(String scheme : schemes) {
+            temp = (ArrayList<Transaction>) transactionRepository.findByFundHouseAndFundDesc(fundhouse, scheme);
             temp.sort(Comparator
                     .comparing(Transaction::getTransactionDate)
                     .thenComparing(Transaction::getId));
@@ -210,15 +169,61 @@ public class TransactionService {
             LocalDateTime now = LocalDateTime.now();
             toInsert.setTransactionDate(Timestamp.valueOf(now));
             temp.addLast(toInsert);
+            allTransactions.addAll(temp);
         }
         return allTransactions;
     }
 
-    public double getTotalXirr(String fundhouse , Iterable<String> schemes , double nav){
+    public Iterable<Transaction> getBalanceUnitsTransactions(String fundHouse , Iterable<String> schemes){
+        try{
+            List<Transaction> returnable = new ArrayList<>();
+            Double nav=0.0;
+            for(String scheme : schemes) {
+                List<Transaction> transactions = transactionRepository.findByFundHouseAndFundDesc(fundHouse,scheme);
+                transactions.sort(Comparator
+                        .comparing(Transaction::getTransactionDate)
+                        .thenComparing(Transaction::getId));
+                Collections.reverse(transactions);
+                Double balanceUnits = transactions.getFirst().getBalUnits();
+                nav = GrpcClient.makeRpcCall(scheme);
+                List<Transaction> temp = new ArrayList<>();
+                Transaction toInsert = new Transaction();
+                LocalDateTime now = LocalDateTime.now();
+                toInsert.setTransactionDate(Timestamp.valueOf(now));
+                toInsert.setUnits(balanceUnits);
+                toInsert.setNav(nav);
+                toInsert.setNetTransactionAmt(balanceUnits*nav);
+                temp.add(toInsert);
+                for (Transaction transaction : transactions) {
+                    System.out.println(balanceUnits);
+                    if (transaction.getNetTransactionAmt() > 0) {
+                        continue;
+                    }
+                    if (balanceUnits < 1) {
+                        break;
+                    }
+                    if (balanceUnits > transaction.getUnits()) {
+                        balanceUnits = balanceUnits - transaction.getUnits() - 1;
+                        temp.add(transaction);
+                    } else {
+                        transaction.setNetTransactionAmt(balanceUnits * transaction.getNav() * -1);
+                        temp.add(transaction);
+                        break;
+                    }
+                }
+                returnable.addAll(temp);
+            }
+            return returnable;
+        } catch(Exception e){
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    public double getTotalXirr(String fundhouse , Iterable<String> schemes){
         ArrayList<org.decampo.xirr.Transaction> allRelevantTransactions = new ArrayList<>();
         Iterable<Transaction> temp;
         temp = getTotalTransactions(fundhouse,schemes);
-        List<org.decampo.xirr.Transaction> res = mapToXirrTransactions(temp, 0.00 ,nav);
+        List<org.decampo.xirr.Transaction> res = mapToXirrTransactions(temp);
         allRelevantTransactions.addAll(res);
         if (!allRelevantTransactions.isEmpty()) {
             return new Xirr(allRelevantTransactions).xirr();
@@ -228,13 +233,8 @@ public class TransactionService {
     }
 
     public double getBalanceUnitsXirr(String fundhouse , Iterable<String> schemes,double nav){
-        ArrayList<org.decampo.xirr.Transaction> allRelevantTransactions = new ArrayList<>();
-        Iterable<Transaction> temp;
-        for(String scheme : schemes){
-            temp = transactionRepository.findByFundHouseAndFundDesc(fundhouse,scheme);
-            List<org.decampo.xirr.Transaction> res = mapToXirrTransactions(getBalanceUnitsTransactions(temp), 0.00,nav);
-            allRelevantTransactions.addAll(res);
-        }
+        List<org.decampo.xirr.Transaction> allRelevantTransactions = new ArrayList<>();
+        allRelevantTransactions = mapToXirrTransactions(getBalanceUnitsTransactions(fundhouse,schemes));
         if (!allRelevantTransactions.isEmpty()) {
             return new Xirr(allRelevantTransactions).xirr();
         } else {
@@ -245,7 +245,7 @@ public class TransactionService {
     public double getCustomUnitsXirr(String fundhouse , String scheme , Double units , Double nav){
         Iterable<Transaction> temp;
         temp = transactionRepository.findByFundHouseAndFundDesc(fundhouse,scheme);
-        List<org.decampo.xirr.Transaction> res = mapToXirrTransactions(getCustomNumberUnitsTransaction(temp, units),units , nav );
+        List<org.decampo.xirr.Transaction> res = mapToXirrTransactions(getCustomNumberUnitsTransaction(temp, units));
         ArrayList<org.decampo.xirr.Transaction> allRelevantTransactions = new ArrayList<>(res);
         if (!allRelevantTransactions.isEmpty()) {
             return new Xirr(allRelevantTransactions).xirr();
@@ -255,91 +255,28 @@ public class TransactionService {
     }
 
     public double getTotalAbsoluteReturn(String fundHouse,Iterable<String> schemes , double nav){
-        List<Transaction> temp;
+        List<Transaction> allTransactions;
         Double TotalBuy = 0.00;
         Double TotalSell = 0.00;
-        Double BalanceUnits = 0.00;
-        for(String scheme : schemes){
-            temp = transactionRepository.findByFundHouseAndFundDesc(fundHouse,scheme);
-            temp.sort(Comparator
-                    .comparing(Transaction::getTransactionDate)
-                    .thenComparing(Transaction::getId));
 
-            for(Transaction individualTransaction : temp) {
-                BalanceUnits = individualTransaction.getBalUnits();
-                if(individualTransaction.getNetTransactionAmt()>0){
-                    TotalSell+= individualTransaction.getNetTransactionAmt();
-                }
-                else{
-                    TotalBuy+= individualTransaction.getNetTransactionAmt()*-1;
-                }
+        allTransactions = (List<Transaction>) getTotalTransactions(fundHouse , schemes);
+
+        for(Transaction individualTransaction : allTransactions) {
+            if(individualTransaction.getNetTransactionAmt()>0){
+                TotalSell+= individualTransaction.getNetTransactionAmt();
             }
-            TotalSell+=BalanceUnits*nav;
+            else{
+                TotalBuy+= individualTransaction.getNetTransactionAmt()*-1;
+            }
         }
         return ((TotalSell-TotalBuy)/TotalBuy);
     }
 
     public double getBalanceUnitsAbsReturnCore(String fundhouse, Iterable<String> schemes, double nav) {
         try {
-            List<Transaction> allRelevantTransactions = new ArrayList<>();
+            List<Transaction> allRelevantTransactions = (List<Transaction>) getBalanceUnitsTransactions(fundhouse,schemes);
             Double totalSell = 0.00;
             Double totalBuy = 0.00;
-
-            // Iterate through all schemes to collect relevant transactions
-            for (String scheme : schemes) {
-                List<Transaction> transactions = transactionRepository.findByFundHouseAndFundDesc(fundhouse, scheme);
-
-                // Sort transactions by date and id, then reverse to process recent transactions first
-                transactions.sort(Comparator
-                        .comparing(Transaction::getTransactionDate)
-                        .thenComparing(Transaction::getId));
-                Collections.reverse(transactions);
-
-                // Calculate the balance units and absolute return for each scheme
-                if (!transactions.isEmpty()) {
-                    Double balanceUnits = transactions.get(0).getBalUnits();
-                    Double initialBalanceUnits = balanceUnits;
-
-                    for (Transaction transaction : transactions) {
-                        System.out.println("Remaining Balance Units: " + balanceUnits);
-
-                        // Skip if it's a sell transaction (NetTransactionAmt > 0)
-                        if (transaction.getNetTransactionAmt() > 0) {
-                            continue;
-                        }
-
-                        // If balance units are less than or equal to 0, break the loop
-                        if (balanceUnits < 1) {
-                            break;
-                        }
-
-                        // If balance units exceed the transaction's units, deduct from balance units
-                        if (balanceUnits > transaction.getUnits()) {
-                            balanceUnits -= transaction.getUnits();
-                            allRelevantTransactions.add(transaction);
-                        } else {
-                            // If remaining balance units are less, set the appropriate amount and break
-                            transaction.setNetTransactionAmt(balanceUnits * transaction.getNav() * -1);
-                            transaction.setUnits(balanceUnits);
-                            allRelevantTransactions.add(transaction);
-                            balanceUnits = 0.0;
-                            break;
-                        }
-                    }
-
-                    // If there are remaining balance units, add a new transaction for the final value at the given NAV
-                    if (initialBalanceUnits > 0) {
-                        Transaction newTransaction = new Transaction();
-                        newTransaction.setNetTransactionAmt(initialBalanceUnits * nav);
-                        newTransaction.setUnits(initialBalanceUnits);
-                        newTransaction.setNav(nav);
-                        newTransaction.setTransactionDesc("Remaining units at NAV");
-                        allRelevantTransactions.add(newTransaction);
-                    }
-                }
-            }
-
-            // Calculate the total buy and sell amounts
             if (!allRelevantTransactions.isEmpty()) {
                 for (Transaction individualTransaction : allRelevantTransactions) {
                     System.out.println("Net Transaction Amount: " + individualTransaction.getNetTransactionAmt());
@@ -350,11 +287,9 @@ public class TransactionService {
                         totalBuy += individualTransaction.getNetTransactionAmt() * -1;
                     }
                 }
-
-                // Return the absolute return as ((TotalSell - TotalBuy) / TotalBuy)
                 return ((totalSell - totalBuy) / totalBuy);
             } else {
-                return 0.0; // No transactions found, return zero absolute return
+                return 0.0;
             }
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
