@@ -74,5 +74,14 @@ class TransactionRelevance(Base):
     __table_args__ = (UniqueConstraint("TransactionDesc", "FundhouseName"),)
 
 
+class schemeNameNAVTableMapper(Base):
+    __tablename__ = "SchemeNameNAVTableMapper"
+    id = Column(Integer, nullable=False, primary_key=True, autoincrement=True)
+    schemeNameBalanceSheet = Column(String, nullable=False)
+    schemeNameNAVTable = Column(String, nullable=False)
+
+    __table_args__ = (UniqueConstraint("schemeNameBalanceSheet"),)
+
+
 def getBase():
     return Base

@@ -7,6 +7,7 @@ from Database_Tier.schema import (
     MasterTable,
     TransactionRelevance,
     FundList,
+    schemeNameNAVTableMapper,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from Database_Tier.schema import getBase
@@ -353,3 +354,46 @@ def truncate_master_table():
         print(f"An error occurred while truncating the table: {e}")
     finally:
         session.close()
+
+
+def fetchMappedScheme(schemeName):
+    session = DatabaseManager.get_session()
+    try:
+        query = select(schemeNameNAVTableMapper.schemeNameNAVTable).where(
+            schemeNameNAVTableMapper.schemeNameBalanceSheet == schemeName
+        )
+        result = session.execute(query).scalar_one_or_none()
+
+        if result is not None:
+            return result
+        else:
+            print("No mapped scheme found for the given scheme name.")
+            return None
+    except Exception as e:
+        print(f"An error occurred while fetching mapped scheme: {str(e)}")
+        return None
+    finally:
+        session.close()
+
+
+def getNAVFromTable(scheme_name):
+    engine = getEngine()
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if "nav_holder" in inspector.get_table_names():
+            # Use a parameterized query to prevent SQL injection
+            query = text(
+                """  
+                SELECT "Net Asset Value"  
+                FROM nav_holder  
+                WHERE "Scheme Name" = :scheme_name
+            """
+            )
+            result = connection.execute(query, {"scheme_name": scheme_name}).fetchone()
+
+            if result:
+                return {"nav": result[0]}
+            else:
+                return {"message": "No NAV found for the specified scheme name."}, 404
+        else:
+            return {"message": "Table 'nav_holder' does not exist."}, 404

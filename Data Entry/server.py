@@ -14,6 +14,9 @@ from controller import (
     get_master_table_as_json,
     truncateMasterTable,
     fetch_and_store_nav_data,
+    addSchemeMap,
+    getFromSchemeMap,
+    getNAVValueFromTable,
 )
 import os
 from flask import jsonify
@@ -116,6 +119,25 @@ def getNAVDataFromWeb():
     return jsonify(fetch_and_store_nav_data())
 
 
+@app.route("/addSchemeMapperData", methods=["POST"])
+def updateSchemeMapper():
+    data = request.json.get("scheme_data")
+    addSchemeMap(data)
+    return "Data added to scheme mapper"
+
+
+@app.route("/getSchemeMapping")
+def getSchemeMap():
+    scheme = request.args.get("scheme")
+    return jsonify(getFromSchemeMap(scheme))
+
+
+@app.route("/getNAVForScheme")
+def getNAV():
+    scheme = request.args.get("scheme")
+    return jsonify(getNAVValueFromTable(scheme))
+
+
 def serveHttp():
     app.run(debug=False, use_reloader=False)
 
@@ -129,3 +151,4 @@ if __name__ == "__main__":
 
     grpc_thread.join()
     http_thread.join()
+    # app.run(debug=True, use_reloader=True)

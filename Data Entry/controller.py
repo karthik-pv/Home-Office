@@ -16,8 +16,14 @@ from Database_Tier.connectToDatabase import (
     getUniqueFundDescFromMasterTable,
     get_masterTable_as_json,
     truncate_master_table,
+    fetchMappedScheme,
+    getNAVFromTable,
 )
-from Database_Tier.schema import ColumnMapper, TransactionRelevance
+from Database_Tier.schema import (
+    ColumnMapper,
+    TransactionRelevance,
+    schemeNameNAVTableMapper,
+)
 from utils import ensure_upload_folder_exists, createDictionary
 
 import pandas as pd
@@ -151,3 +157,44 @@ def fetch_and_store_nav_data():
         return {"message": "Data successfully inserted into PostgreSQL"}
     except Exception as e:
         return {"error": str(e)}, 500
+
+
+def addSchemeMap(data):
+    try:
+        for scheme_name_balance_sheet, scheme_name_nav_table in data.items():
+            newEntry = schemeNameNAVTableMapper(
+                schemeNameBalanceSheet=scheme_name_balance_sheet,
+                schemeNameNAVTable=scheme_name_nav_table,
+            )
+            existing_entry = fetchMappedScheme(scheme_name_balance_sheet)
+            if existing_entry is not None:
+                print(
+                    f"Entry for '{scheme_name_balance_sheet}' already exists. Skipping."
+                )
+                continue
+            addToTable(newEntry)
+
+        return "Data added successfully to scheme mapper."
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
+
+
+def getFromSchemeMap(data):
+    try:
+        result = fetchMappedScheme(data)
+        if result is not None:
+            return result
+        else:
+            return "No mapped scheme found"
+    except Exception as e:
+        print(f"An error occurred while getting from scheme map: {str(e)}")
+
+
+def getNAVValueFromTable(scheme):
+    try:
+        mappedScheme = fetchMappedScheme(scheme)
+        print(mappedScheme)
+        return getNAVFromTable(mappedScheme)
+    except Exception as e:
+        print(f"An error occurred while getting NAV value: {str(e)}")
+        return None

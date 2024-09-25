@@ -1,13 +1,16 @@
 package dev.jojo.HomeOffice.Services;
 
 import dev.jojo.HomeOffice.Entities.Transaction;
+import dev.jojo.HomeOffice.GrpcClient;
 import dev.jojo.HomeOffice.Repositories.TransactionRepository;
 import org.decampo.xirr.Xirr;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.support.NullValue;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.StreamSupport;
@@ -176,23 +179,14 @@ public class TransactionService {
 
     public List<org.decampo.xirr.Transaction> mapToXirrTransactions(Iterable<Transaction> transactions , double Units , double nav) {
         List<org.decampo.xirr.Transaction> xirrTransactions = new ArrayList<>();
-        double balUnits = 0.0;
+        LocalDate date;
+        Double amount;
         for (Transaction transaction : transactions) {
-            double amount = transaction.getNetTransactionAmt();
-            LocalDate date = transaction.getTransactionDate().toInstant()
+            amount = transaction.getNetTransactionAmt();
+            date = transaction.getTransactionDate().toInstant()
                     .atZone(ZoneId.systemDefault())
                     .toLocalDate();
-            System.out.println(amount);
-            System.out.println(date);
-            balUnits = transaction.getBalUnits();
             xirrTransactions.add(new org.decampo.xirr.Transaction(amount, date));
-        }
-        if(Units==0.00) {
-            System.out.println(balUnits*nav);
-            xirrTransactions.add(new org.decampo.xirr.Transaction(balUnits * nav, LocalDate.now()));
-        }
-        else{
-            xirrTransactions.add(new org.decampo.xirr.Transaction(Units * nav, LocalDate.now()));
         }
         return xirrTransactions;
     }
@@ -201,12 +195,21 @@ public class TransactionService {
         ArrayList<Transaction> allTransactions = new ArrayList<>();
         ArrayList<Transaction> temp = new ArrayList<>();
         Double netTransactionAmt=0.0;
+        Double nav = 0.0;
         for(String scheme : schemes){
             temp = (ArrayList<Transaction>) transactionRepository.findByFundHouseAndFundDesc(fundhouse,scheme);
             temp.sort(Comparator
                     .comparing(Transaction::getTransactionDate)
                     .thenComparing(Transaction::getId));
-            netTransactionAmt = temp.getLast().getBalUnits();
+            nav = GrpcClient.makeRpcCall(scheme);
+            System.out.println(nav);
+            netTransactionAmt = temp.getLast().getBalUnits() * nav;
+            Transaction toInsert = new Transaction();
+            toInsert.setNetTransactionAmt(netTransactionAmt);
+            toInsert.setNav(nav);
+            LocalDateTime now = LocalDateTime.now();
+            toInsert.setTransactionDate(Timestamp.valueOf(now));
+            temp.addLast(toInsert);
         }
         return allTransactions;
     }
@@ -214,11 +217,9 @@ public class TransactionService {
     public double getTotalXirr(String fundhouse , Iterable<String> schemes , double nav){
         ArrayList<org.decampo.xirr.Transaction> allRelevantTransactions = new ArrayList<>();
         Iterable<Transaction> temp;
-        for(String scheme : schemes){
-            temp = transactionRepository.findByFundHouseAndFundDesc(fundhouse,scheme);
-            List<org.decampo.xirr.Transaction> res = mapToXirrTransactions(temp, 0.00 ,nav);
-            allRelevantTransactions.addAll(res);
-        }
+        temp = getTotalTransactions(fundhouse,schemes);
+        List<org.decampo.xirr.Transaction> res = mapToXirrTransactions(temp, 0.00 ,nav);
+        allRelevantTransactions.addAll(res);
         if (!allRelevantTransactions.isEmpty()) {
             return new Xirr(allRelevantTransactions).xirr();
         } else {
