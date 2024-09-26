@@ -35,7 +35,6 @@ public class TransactionController {
     public ResponseEntity<Double> getTotalFundHouseXirr(@RequestBody FundHouseXirrRequest data) {
         String fundhouse = data.getFundhouse();
         Iterable<String> schemes = data.getSchemes();
-        Double nav = data.getNav();
         return ResponseEntity.ok(transactionService.getTotalXirr(fundhouse, schemes));
     }
 
@@ -43,8 +42,7 @@ public class TransactionController {
     public ResponseEntity<Double> getBalanceUnitsXirr(@RequestBody FundHouseXirrRequest data){
         String fundhouse = data.getFundhouse();
         Iterable<String> schemes = data.getSchemes();
-        Double nav = data.getNav();
-        return ResponseEntity.ok(transactionService.getBalanceUnitsXirr(fundhouse,schemes,nav));
+        return ResponseEntity.ok(transactionService.getBalanceUnitsXirr(fundhouse,schemes));
     }
 
     @PostMapping("/getCustomUnitsXirr")
@@ -52,24 +50,28 @@ public class TransactionController {
         String fundhouse = data.getFundhouse();
         List<String> schemes = data.getSchemes();
         Double units = data.getUnits();
-        Double nav = data.getNav();
-        return ResponseEntity.ok(transactionService.getCustomUnitsXirr(fundhouse, schemes.getFirst(),units,nav));
+        return ResponseEntity.ok(transactionService.getCustomUnitsXirr(fundhouse, schemes.getFirst(),units));
+    }
+
+    @PostMapping("/getSoldUnitsXirr")
+    public ResponseEntity<Double> getSoldUnits(@RequestBody FundHouseXirrRequest data){
+        String fundhouse = data.getFundhouse();
+        List<String> schemes = data.getSchemes();
+        return ResponseEntity.ok(transactionService.getSoldUnitsXirr(fundhouse,schemes));
     }
 
     @PostMapping("/getTotalAbsReturn")
     public ResponseEntity<Double> getTotalAbsReturn(@RequestBody FundHouseXirrRequest data){
         String fundhouse = data.getFundhouse();
         List<String> schemes = data.getSchemes();
-        Double nav = data.getNav();
-        return ResponseEntity.ok(transactionService.getTotalAbsoluteReturn(fundhouse, schemes ,nav));
+        return ResponseEntity.ok(transactionService.getTotalAbsoluteReturn(fundhouse, schemes));
     }
 
     @PostMapping("/getBalanceUnitsAbsReturn")
     public ResponseEntity<Double> getBalanceUnitsAbsReturn(@RequestBody FundHouseXirrRequest data){
         String fundhouse = data.getFundhouse();
         Iterable<String> schemes = data.getSchemes();
-        Double nav = data.getNav();
-        return ResponseEntity.ok(transactionService.getBalanceUnitsAbsReturnCore(fundhouse,schemes,nav));
+        return ResponseEntity.ok(transactionService.getBalanceUnitsAbsReturn(fundhouse,schemes));
     }
 
     @PostMapping("/getCustomUnitsAbsReturn")
@@ -77,8 +79,14 @@ public class TransactionController {
         String fundhouse = data.getFundhouse();
         List<String> schemes = data.getSchemes();
         Double units = data.getUnits();
-        Double nav = data.getNav();
-        return ResponseEntity.ok(transactionService.getCustomUnitsAbsoluteReturn(fundhouse,schemes.getFirst(),units,nav));
+        return ResponseEntity.ok(transactionService.getCustomUnitsAbsoluteReturn(fundhouse,schemes.getFirst(),units));
+    }
+
+    @PostMapping("/getSoldUnitsAbsReturn")
+    public ResponseEntity<Double> getSoldUnitsAbsReturn(@RequestBody FundHouseXirrRequest data){
+        String fundHouse = data.getFundhouse();
+        List<String> schemes = data.getSchemes();
+        return ResponseEntity.ok(transactionService.getSoldUnitsAbsoluteReturn(fundHouse,schemes));
     }
 
 }

@@ -18,5 +18,4 @@ public class FundHouseXirrRequest {
 
     private Double units;
 
-    private Double nav;
 }

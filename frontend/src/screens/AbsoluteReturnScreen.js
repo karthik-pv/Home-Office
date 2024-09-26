@@ -6,6 +6,7 @@ import {
   GET_ABS_RETURN_TOTAL,
   GET_ABS_RETURN_BALANCE,
   GET_ABS_RETURN_CUSTOM,
+  GET_ABS_RETURN_SOLD,
   GET_FUNDHOUSES_LIST,
   GET_MASTER_TABLE,
   GET_SCHEMES_LIST,
@@ -17,8 +18,7 @@ const AbsoluteReturnScreen = () => {
   const [selectedFundHouse, setSelectedFundHouse] = useState(null);
   const [selectedScheme, setSelectedScheme] = useState(null);
   const [data, setData] = useState([]);
-  const [units, setUnits] = useState(0); // State for custom units
-  const [nav, setNav] = useState(""); // State for NAV input
+  const [units, setUnits] = useState(0);
 
   const fetchData = async () => {
     try {
@@ -40,7 +40,6 @@ const AbsoluteReturnScreen = () => {
     }
   }, [selectedFundHouse, selectedScheme]);
 
-  // Fetch fund house list
   const fetchFundHouseList = async () => {
     try {
       const response = await axios.get(
@@ -58,6 +57,9 @@ const AbsoluteReturnScreen = () => {
         params: { fundHouse },
       });
       setSchemeList(response.data);
+      if (response.data.length === 0) {
+        alert("Update Master Table First");
+      }
     } catch (error) {
       console.error("Error fetching schemes:", error);
     }
@@ -82,10 +84,6 @@ const AbsoluteReturnScreen = () => {
     setUnits(event.target.value);
   };
 
-  const handleNavChange = (event) => {
-    setNav(event.target.value);
-  };
-
   useEffect(() => {
     fetchFundHouseList();
   }, []);
@@ -99,7 +97,6 @@ const AbsoluteReturnScreen = () => {
     let requestBody = {
       fundhouse: selectedFundHouse,
       schemes: schemeList,
-      nav: parseFloat(nav), // Use the entered NAV value
     };
 
     if (selectedScheme) {
@@ -128,7 +125,6 @@ const AbsoluteReturnScreen = () => {
     let requestBody = {
       fundhouse: selectedFundHouse,
       schemes: schemeList,
-      nav: parseFloat(nav), // Use the entered NAV value
     };
 
     if (selectedScheme) {
@@ -157,7 +153,6 @@ const AbsoluteReturnScreen = () => {
     let requestBody = {
       fundhouse: selectedFundHouse,
       schemes: schemeList,
-      nav: parseFloat(nav), // Use the entered NAV value
       units: units,
     };
 
@@ -168,6 +163,35 @@ const AbsoluteReturnScreen = () => {
     try {
       const response = await axios.post(
         BUSINESS_LOGIC_BASE_URL + GET_ABS_RETURN_CUSTOM,
+        requestBody
+      );
+      const absReturnValue = response.data;
+      alert(`Absolute Return for Custom Units: ${absReturnValue}`);
+    } catch (error) {
+      console.error("Error fetching Absolute Return for Custom Units:", error);
+      alert("Error fetching Absolute Return for Custom Units.");
+    }
+  };
+
+  const handleSoldUnitsAbsoluteReturn = async () => {
+    if (!selectedFundHouse) {
+      alert("Please select Fund House");
+      return;
+    }
+
+    let requestBody = {
+      fundhouse: selectedFundHouse,
+      schemes: schemeList,
+      units: units,
+    };
+
+    if (selectedScheme) {
+      requestBody.schemes = [selectedScheme];
+    }
+
+    try {
+      const response = await axios.post(
+        BUSINESS_LOGIC_BASE_URL + GET_ABS_RETURN_SOLD,
         requestBody
       );
       const absReturnValue = response.data;
@@ -250,24 +274,6 @@ const AbsoluteReturnScreen = () => {
           />
         </div>
 
-        <div className="mb-4">
-          <label
-            className="block text-white text-sm font-semibold mb-2"
-            htmlFor="navInput"
-          >
-            Enter NAV
-          </label>
-          <input
-            id="navInput"
-            type="number"
-            value={nav}
-            onChange={handleNavChange}
-            className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded text-sm"
-            placeholder="Enter NAV"
-            required
-          />
-        </div>
-
         <div className="overflow-x-auto overflow-y-auto max-h-fit mb-4">
           <table className="min-w-full bg-gray-800 text-white text-sm">
             <thead>
@@ -314,6 +320,12 @@ const AbsoluteReturnScreen = () => {
             className="flex-grow px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 text-center"
           >
             Absolute Return for Custom Units
+          </button>
+          <button
+            onClick={handleSoldUnitsAbsoluteReturn}
+            className="flex-grow px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 text-center"
+          >
+            Absolute Return for Sold Units
           </button>
         </div>
       </div>

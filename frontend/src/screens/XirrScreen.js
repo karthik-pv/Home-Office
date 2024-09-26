@@ -5,6 +5,7 @@ import {
   DATA_ENTRY_BASE_URL,
   GET_BALANCE_XIRR,
   GET_CUSTOM_XIRR,
+  GET_SOLD_XIRR,
   GET_FUNDHOUSES_LIST,
   GET_MASTER_TABLE,
   GET_SCHEMES_LIST,
@@ -18,7 +19,6 @@ const XirrScreen = () => {
   const [selectedScheme, setSelectedScheme] = useState(null);
   const [data, setData] = useState([]);
   const [units, setUnits] = useState(0);
-  const [nav, setNav] = useState(0);
 
   const fetchData = async () => {
     try {
@@ -40,7 +40,6 @@ const XirrScreen = () => {
     }
   }, [selectedFundHouse, selectedScheme]);
 
-  // Fetch fund house list
   const fetchFundHouseList = async () => {
     try {
       const response = await axios.get(
@@ -58,6 +57,9 @@ const XirrScreen = () => {
         params: { fundHouse },
       });
       setSchemeList(response.data);
+      if (response.data.length === 0) {
+        alert("Update Master Table");
+      }
     } catch (error) {
       console.error("Error fetching schemes:", error);
     }
@@ -82,26 +84,9 @@ const XirrScreen = () => {
     setUnits(event.target.value);
   };
 
-  const handleNavChange = (event) => {
-    setNav(event.target.value);
-  };
-
   useEffect(() => {
     fetchFundHouseList();
   }, []);
-
-  const handleCalculateXirr = () => {
-    if (!selectedFundHouse || !selectedScheme || !units) {
-      alert("Please select Fund House, Scheme, and enter the number of units.");
-      return;
-    }
-
-    console.log("Calculating XIRR with:", {
-      selectedFundHouse,
-      selectedScheme,
-      units,
-    });
-  };
 
   const handleTotalXirr = async () => {
     if (!selectedFundHouse) {
@@ -112,7 +97,6 @@ const XirrScreen = () => {
     let requestBody = {
       fundhouse: selectedFundHouse,
       schemes: schemeList,
-      nav: 380.004,
     };
 
     if (selectedScheme) {
@@ -141,7 +125,6 @@ const XirrScreen = () => {
     let requestBody = {
       fundhouse: selectedFundHouse,
       schemes: schemeList,
-      nav: 380.004,
     };
 
     if (selectedScheme) {
@@ -170,7 +153,6 @@ const XirrScreen = () => {
     let requestBody = {
       fundhouse: selectedFundHouse,
       schemes: schemeList,
-      nav: 380.004,
       units: units,
     };
 
@@ -181,6 +163,34 @@ const XirrScreen = () => {
     try {
       const response = await axios.post(
         BUSINESS_LOGIC_BASE_URL + GET_CUSTOM_XIRR,
+        requestBody
+      );
+      const xirrValue = response.data;
+      alert(`Total XIRR: ${xirrValue}`);
+    } catch (error) {
+      console.error("Error fetching Total XIRR:", error);
+      alert("Error fetching Total XIRR.");
+    }
+  };
+
+  const handleSoldUnitsXirr = async () => {
+    if (!selectedFundHouse) {
+      alert("Please select Fund House");
+      return;
+    }
+
+    let requestBody = {
+      fundhouse: selectedFundHouse,
+      schemes: schemeList,
+    };
+
+    if (selectedScheme) {
+      requestBody.schemes = [selectedScheme];
+    }
+
+    try {
+      const response = await axios.post(
+        BUSINESS_LOGIC_BASE_URL + GET_SOLD_XIRR,
         requestBody
       );
       const xirrValue = response.data;
@@ -263,25 +273,6 @@ const XirrScreen = () => {
           />
         </div>
 
-        <div className="mb-4">
-          <label
-            className="block text-white text-sm font-semibold mb-2"
-            htmlFor="navInput"
-          >
-            Enter NAV
-          </label>
-          <input
-            id="navInput"
-            type="number"
-            step="0.01"
-            value={nav}
-            onChange={handleNavChange}
-            className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded text-sm"
-            placeholder="Enter NAV"
-            required
-          />
-        </div>
-
         <div className="overflow-x-auto overflow-y-auto max-h-fit mb-4">
           <table className="min-w-full bg-gray-800 text-white text-sm">
             <thead>
@@ -328,6 +319,13 @@ const XirrScreen = () => {
             className="flex-grow px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-center"
           >
             XIRR for Custom Units
+          </button>
+
+          <button
+            onClick={handleSoldUnitsXirr}
+            className="flex-grow px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-center"
+          >
+            XIRR for Sold Units
           </button>
         </div>
       </div>

@@ -6,6 +6,7 @@ import NewFundHouseScreen from "./screens/NewFundHouseScreen";
 import UploadCsvToFundHouseScreen from "./screens/UploadCSVToFundHouseScreen";
 import XirrScreen from "./screens/XirrScreen";
 import AbsoluteReturnScreen from "./screens/AbsoluteReturnScreen";
+import NAVSchemeMapperScreen from "./screens/NAVSchemeMapperScreen";
 
 function App() {
   return (
@@ -22,6 +23,10 @@ function App() {
           <Route
             path="/CalculateAbsoluteReturn"
             element={<AbsoluteReturnScreen />}
+          />
+          <Route
+            path="/addSchemeMapperData"
+            element={<NAVSchemeMapperScreen />}
           />
         </Routes>
       </div>

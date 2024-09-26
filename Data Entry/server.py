@@ -22,6 +22,8 @@ import os
 from flask import jsonify
 from grpcServer import serveGrpc
 from threading import Thread
+import sys
+import signal
 
 
 UPLOAD_FOLDER = os.path.join("Static_Files", "uploads")
@@ -139,16 +141,26 @@ def getNAV():
 
 
 def serveHttp():
+    fetch_and_store_nav_data()
     app.run(debug=False, use_reloader=False)
 
 
+def signal_handler(sig, frame):
+    print("Shutting down servers...")
+    sys.exit(0)
+
+
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal_handler)
+
     grpc_thread = Thread(target=serveGrpc)
     http_thread = Thread(target=serveHttp)
 
     grpc_thread.start()
     http_thread.start()
 
-    grpc_thread.join()
-    http_thread.join()
-    # app.run(debug=True, use_reloader=True)
+    try:
+        grpc_thread.join()
+        http_thread.join()
+    except KeyboardInterrupt:
+        print("Interrupted! Shutting down...")

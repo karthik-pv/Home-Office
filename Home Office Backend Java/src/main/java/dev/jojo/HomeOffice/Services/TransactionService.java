@@ -64,75 +64,6 @@ public class TransactionService {
     }
 
 
-    public Iterable<Transaction> getCustomNumberUnitsTransaction(Iterable<Transaction> transactions, Double units) {
-        try {
-            List<Transaction> transactionList = new ArrayList<>();
-            List<Transaction> postZeroTransactions = new ArrayList<>();
-            List<Transaction> buyTransactions = new ArrayList<>();
-            List<Transaction> returnable = new ArrayList<>();
-            Double balanceUnits = units;
-            Double soldUnits = 0.0;
-
-            transactions.forEach(transactionList::add);
-            transactionList.sort(Comparator
-                    .comparing(Transaction::getTransactionDate)
-                    .thenComparing(Transaction::getId));
-
-            Collections.reverse(transactionList);
-
-            for (Transaction transaction : transactionList) {
-                if (transaction.getBalUnits() == 0.0) {
-                    break;
-                }
-                postZeroTransactions.add(transaction);
-            }
-            Collections.reverse(postZeroTransactions);
-
-            for (Transaction transaction : postZeroTransactions) {
-                if (transaction.getNetTransactionAmt() > 0) {
-                    soldUnits += transaction.getUnits();
-                } else {
-                    buyTransactions.add(transaction);
-                }
-            }
-
-            Iterator<Transaction> iterator = buyTransactions.iterator();
-            while (iterator.hasNext()) {
-                Transaction transaction = iterator.next();
-                if (transaction.getUnits() < soldUnits) {
-                    soldUnits -= transaction.getUnits();
-                    iterator.remove();
-                } else {
-                    Double remainingUnits = transaction.getUnits() - soldUnits;
-                    transaction.setUnits(remainingUnits);
-                    transaction.setAmount(remainingUnits * transaction.getNav() * -1);
-                    soldUnits = 0.0;
-                    break;
-                }
-            }
-
-            for (Transaction buyTransaction : buyTransactions) {
-                if (buyTransaction.getUnits() <= balanceUnits) {
-                    balanceUnits -= buyTransaction.getUnits();
-                    buyTransaction.setAmount(buyTransaction.getUnits() * buyTransaction.getNav() * -1);
-                    returnable.add(buyTransaction);
-                } else {
-                    buyTransaction.setUnits(balanceUnits);
-                    buyTransaction.setNetTransactionAmt(balanceUnits * buyTransaction.getNav() * -1);
-                    returnable.add(buyTransaction);
-                    break;
-                }
-            }
-
-            for (Transaction t : returnable) {
-                System.out.println("Units: " + t.getUnits() + ", Amount: " + t.getAmount() + ", Date: " + t.getTransactionDate());
-            }
-
-            return returnable;
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
-    }
 
 
 
@@ -219,6 +150,122 @@ public class TransactionService {
         }
     }
 
+    public Iterable<Transaction> getCustomNumberUnitsTransaction(String fundHouse , String scheme , Double units) {
+        try {
+            List<Transaction> transactions = transactionRepository.findByFundHouseAndFundDesc(fundHouse,scheme);
+            List<Transaction> postZeroTransactions = new ArrayList<>();
+            List<Transaction> buyTransactions = new ArrayList<>();
+            List<Transaction> returnable = new ArrayList<>();
+            Double balanceUnits = units;
+            Double soldUnits = 0.0;
+            Double nav = 0.0;
+
+            transactions.sort(Comparator
+                    .comparing(Transaction::getTransactionDate)
+                    .thenComparing(Transaction::getId));
+
+            Collections.reverse(transactions);
+
+            for (Transaction transaction : transactions) {
+                if (transaction.getBalUnits() == 0.0) {
+                    break;
+                }
+                postZeroTransactions.add(transaction);
+            }
+            Collections.reverse(postZeroTransactions);
+
+            for (Transaction transaction : postZeroTransactions) {
+                if (transaction.getNetTransactionAmt() > 0) {
+                    soldUnits += transaction.getUnits();
+                } else {
+                    buyTransactions.add(transaction);
+                }
+            }
+
+            for(Transaction transaction : buyTransactions) {
+                if(transaction.getUnits()<=soldUnits){
+                    soldUnits-=transaction.getUnits();
+                } else {
+                    Double remainingUnits = transaction.getUnits() - soldUnits;
+                    transaction.setUnits(remainingUnits);
+                    transaction.setAmount(remainingUnits * transaction.getNav() * -1);
+                    break;
+                }
+            }
+
+            for (Transaction buyTransaction : buyTransactions) {
+                if (buyTransaction.getUnits() <= balanceUnits) {
+                    balanceUnits -= buyTransaction.getUnits();
+                    buyTransaction.setAmount(buyTransaction.getUnits() * buyTransaction.getNav() * -1);
+                    returnable.add(buyTransaction);
+                } else {
+                    buyTransaction.setUnits(balanceUnits);
+                    buyTransaction.setNetTransactionAmt(balanceUnits * buyTransaction.getNav() * -1);
+                    returnable.add(buyTransaction);
+                    break;
+                }
+            }
+
+            nav = GrpcClient.makeRpcCall(scheme);
+            Transaction toInsert = new Transaction();
+            toInsert.setNav(nav);
+            LocalDateTime now = LocalDateTime.now();
+            toInsert.setTransactionDate(Timestamp.valueOf(now));
+            toInsert.setNetTransactionAmt(nav*units);
+            returnable.add(toInsert);
+            return returnable;
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    public Iterable<Transaction> getAllSoldTransactions(String fundHouse, Iterable<String> schemes) {
+        try {
+            ArrayList<Transaction> allRelevantTransactions = new ArrayList<>();
+            double soldUnits = 0.0;
+
+            for (String scheme : schemes) {
+                List<Transaction> transactions = transactionRepository.findByFundHouseAndFundDesc(fundHouse, scheme);
+                if (transactions == null) {
+                    continue;
+                }
+
+                transactions.sort(Comparator
+                        .comparing(Transaction::getTransactionDate)
+                        .thenComparing(Transaction::getId));
+
+                for (Transaction transaction : transactions) {
+                    if (transaction.getNetTransactionAmt() > 0) {
+                        allRelevantTransactions.add(transaction);
+                        soldUnits += transaction.getUnits();
+                    }
+                }
+
+                for (Transaction transaction : transactions) {
+                    if (transaction.getNetTransactionAmt() < 0) {
+                        if (transaction.getUnits() <= soldUnits) {
+                            allRelevantTransactions.add(transaction);
+                            soldUnits -= transaction.getUnits();
+                        } else {
+                            Transaction partialTransaction = new Transaction();
+                            partialTransaction.setTransactionDate(transaction.getTransactionDate());
+                            partialTransaction.setUnits(soldUnits);
+                            partialTransaction.setNetTransactionAmt(soldUnits * transaction.getNav()* -1);
+                            allRelevantTransactions.add(partialTransaction);
+                            soldUnits = 0;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return allRelevantTransactions.isEmpty() ? Collections.emptyList() : allRelevantTransactions;
+        } catch (Exception e) {
+            throw new RuntimeException("Error processing transactions: " + e.getMessage(), e);
+        }
+    }
+
+
     public double getTotalXirr(String fundhouse , Iterable<String> schemes){
         ArrayList<org.decampo.xirr.Transaction> allRelevantTransactions = new ArrayList<>();
         Iterable<Transaction> temp;
@@ -232,7 +279,7 @@ public class TransactionService {
         }
     }
 
-    public double getBalanceUnitsXirr(String fundhouse , Iterable<String> schemes,double nav){
+    public double getBalanceUnitsXirr(String fundhouse , Iterable<String> schemes){
         List<org.decampo.xirr.Transaction> allRelevantTransactions = new ArrayList<>();
         allRelevantTransactions = mapToXirrTransactions(getBalanceUnitsTransactions(fundhouse,schemes));
         if (!allRelevantTransactions.isEmpty()) {
@@ -242,95 +289,75 @@ public class TransactionService {
         }
     }
 
-    public double getCustomUnitsXirr(String fundhouse , String scheme , Double units , Double nav){
-        Iterable<Transaction> temp;
-        temp = transactionRepository.findByFundHouseAndFundDesc(fundhouse,scheme);
-        List<org.decampo.xirr.Transaction> res = mapToXirrTransactions(getCustomNumberUnitsTransaction(temp, units));
-        ArrayList<org.decampo.xirr.Transaction> allRelevantTransactions = new ArrayList<>(res);
-        if (!allRelevantTransactions.isEmpty()) {
-            return new Xirr(allRelevantTransactions).xirr();
+    public double getCustomUnitsXirr(String fundhouse , String scheme , Double units){
+        List<org.decampo.xirr.Transaction> res = mapToXirrTransactions(getCustomNumberUnitsTransaction(fundhouse,scheme,units));
+        if (!res.isEmpty()) {
+            return new Xirr(res).xirr();
         } else {
             return 0.0;
         }
     }
 
-    public double getTotalAbsoluteReturn(String fundHouse,Iterable<String> schemes , double nav){
+    public Double getSoldUnitsXirr(String fundhouse , Iterable<String> schemes){
+        List<org.decampo.xirr.Transaction> res = mapToXirrTransactions(getAllSoldTransactions(fundhouse,schemes));
+        if(!res.isEmpty()){
+            return new Xirr(res).xirr();
+        }
+        else{
+            return 0.0;
+        }
+    }
+
+    public Double getAbsoluteReturn(Iterable<Transaction> allTransactions){
+        try {
+            Double TotalBuy = 0.00;
+            Double TotalSell = 0.00;
+            for (Transaction individualTransaction : allTransactions) {
+                if (individualTransaction.getNetTransactionAmt() > 0) {
+                    TotalSell += individualTransaction.getNetTransactionAmt();
+                } else {
+                    TotalBuy += individualTransaction.getNetTransactionAmt() * -1;
+                }
+            }
+            return ((TotalSell - TotalBuy) / TotalBuy);
+        }
+        catch(Exception e){
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    public double getTotalAbsoluteReturn(String fundHouse,Iterable<String> schemes ){
         List<Transaction> allTransactions;
-        Double TotalBuy = 0.00;
-        Double TotalSell = 0.00;
 
         allTransactions = (List<Transaction>) getTotalTransactions(fundHouse , schemes);
 
-        for(Transaction individualTransaction : allTransactions) {
-            if(individualTransaction.getNetTransactionAmt()>0){
-                TotalSell+= individualTransaction.getNetTransactionAmt();
-            }
-            else{
-                TotalBuy+= individualTransaction.getNetTransactionAmt()*-1;
-            }
-        }
-        return ((TotalSell-TotalBuy)/TotalBuy);
+        return getAbsoluteReturn(allTransactions);
     }
 
-    public double getBalanceUnitsAbsReturnCore(String fundhouse, Iterable<String> schemes, double nav) {
+    public double getBalanceUnitsAbsReturn(String fundhouse, Iterable<String> schemes) {
         try {
             List<Transaction> allRelevantTransactions = (List<Transaction>) getBalanceUnitsTransactions(fundhouse,schemes);
-            Double totalSell = 0.00;
-            Double totalBuy = 0.00;
-            if (!allRelevantTransactions.isEmpty()) {
-                for (Transaction individualTransaction : allRelevantTransactions) {
-                    System.out.println("Net Transaction Amount: " + individualTransaction.getNetTransactionAmt());
-
-                    if (individualTransaction.getNetTransactionAmt() > 0) {
-                        totalSell += individualTransaction.getNetTransactionAmt();
-                    } else {
-                        totalBuy += individualTransaction.getNetTransactionAmt() * -1;
-                    }
-                }
-                return ((totalSell - totalBuy) / totalBuy);
-            } else {
-                return 0.0;
-            }
+            return getAbsoluteReturn(allRelevantTransactions);
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
         }
     }
 
-    public double getCustomUnitsAbsoluteReturn(String fundhouse, String scheme, Double units, Double nav) {
+    public double getCustomUnitsAbsoluteReturn(String fundhouse, String scheme, Double units) {
         try {
-            // Fetch the relevant transactions based on the fundhouse and scheme
-            Iterable<Transaction> transactions = transactionRepository.findByFundHouseAndFundDesc(fundhouse, scheme);
-
-            // Get the processed transactions for the custom number of units
-            Iterable<Transaction> customUnitsTransactions = getCustomNumberUnitsTransaction(transactions, units);
-
-            // Initialize total sell and total buy amounts
-            Double totalSell = 0.0;
-            Double totalBuy = 0.0;
-
-            // Iterate over the transactions and calculate total buy and sell amounts
-            for (Transaction transaction : customUnitsTransactions) {
-                if (transaction.getNetTransactionAmt() > 0) {
-                    // Add to totalSell for positive (sell) transactions
-                    totalSell += transaction.getNetTransactionAmt();
-                } else {
-                    // Add to totalBuy for negative (buy) transactions
-                    totalBuy += transaction.getNetTransactionAmt() * -1;
-                }
-            }
-
-            // Add a final transaction representing the remaining units at the given NAV
-            double remainingUnitsValue = units * nav;
-            totalSell += remainingUnitsValue;
-
-            // Calculate and return the absolute return as ((TotalSell - TotalBuy) / TotalBuy)
-            if (totalBuy > 0) {
-                return ((totalSell - totalBuy) / totalBuy);
-            } else {
-                // In case there's no buy transaction, return 0 to avoid division by zero
-                return 0.0;
-            }
+            Iterable<Transaction> customUnitsTransactions = getCustomNumberUnitsTransaction(fundhouse,scheme,units);
+            return getAbsoluteReturn(customUnitsTransactions);
         } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    public Double getSoldUnitsAbsoluteReturn(String fundhouse , Iterable<String> schemes){
+        try{
+            ArrayList<Transaction> allRelevantTransactions = (ArrayList<Transaction>) getAllSoldTransactions(fundhouse,schemes);
+            return getAbsoluteReturn(allRelevantTransactions);
+        }
+        catch(Exception e){
             throw new RuntimeException(e.getMessage());
         }
     }
