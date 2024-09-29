@@ -101,6 +101,7 @@ def updateMasterTable(fundName):
         transactionRelevance = fetchTransactionRelevance(fundName)
         reflectedTable = reflection(fundName)
         createDictionary(reflectedTable, columnMap)
+        print(reflectedTable)
         transferDataToMasterTable(
             fundName=fundName,
             reflectedTable=reflectedTable,
@@ -150,7 +151,7 @@ def fetch_and_store_nav_data():
             ],
         )
         df["Net Asset Value"] = pd.to_numeric(df["Net Asset Value"], errors="coerce")
-        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+        df["Date"] = pd.to_datetime(df["Date"], format="%Y-%m-%d", errors="coerce")
 
         uploadCsvAsTable(df, "nav_holder")
 

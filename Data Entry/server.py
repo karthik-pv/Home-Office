@@ -60,6 +60,7 @@ def uploadFile():
 @app.route("/updateMasterTable", methods=["POST"])
 def updateToMasterTable():
     data = request.json.get("fundName")
+    print(data)
     updateMasterTable(data)
     return "Data updated in Master Table"
 
@@ -142,7 +143,7 @@ def getNAV():
 
 def serveHttp():
     fetch_and_store_nav_data()
-    app.run(debug=False, use_reloader=False)
+    app.run(host="0.0.0.0", debug=False, use_reloader=False)
 
 
 def signal_handler(sig, frame):

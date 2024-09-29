@@ -11,6 +11,7 @@ from Database_Tier.schema import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from Database_Tier.schema import getBase
+import datetime
 
 
 class DatabaseManager:
@@ -72,6 +73,7 @@ class DatabaseManager:
 def execute_query(query):
     session = DatabaseManager.get_session()
     try:
+        print(query)
         result = session.execute(query)
         session.commit()
         return result.fetchall()
@@ -105,10 +107,10 @@ def reflection(table):
     session = DatabaseManager.get_session()
     metadata = MetaData()
     try:
+        print(f"Reflecting table: {table}")
         reflected_table = Table(table, metadata, autoload_with=engine)
-        # query = reflected_table.select()
-        # result = session.execute(query)
-        # rows = result.fetchall()
+        print("Table reflected successfully.")
+        print(f"Reflected columns: {reflected_table.columns.keys()}")
         return reflected_table
     except Exception as e:
         print(f"An error occurred while reflecting the table: {str(e)}")
@@ -234,7 +236,7 @@ def transferDataToMasterTable(
                     * transactionRelevance[row[columnMappings["transaction_desc"]]],
                     status=True,
                 )
-                print(master_entry)
+                print(master_entry.__dict__)
                 session.add(master_entry)
 
         session.commit()
@@ -381,7 +383,7 @@ def getNAVFromTable(scheme_name):
     with engine.connect() as connection:
         inspector = inspect(connection)
         if "nav_holder" in inspector.get_table_names():
-            # Use a parameterized query to prevent SQL injection
+
             query = text(
                 """  
                 SELECT "Net Asset Value"  

@@ -1,6 +1,6 @@
 {
   "DB_DETAILS": {
-    "HOST": "localhost",
+    "HOST": "db",
     "USER": "postgres",
     "PASSWORD": "postgrespassword",
     "DATABASE": "Home Office"
